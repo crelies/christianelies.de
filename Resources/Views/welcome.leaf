@@ -1,9 +1,55 @@
 #set("title") { It works }
 
 #set("body") {
-	<div class="welcome">
-		<img src="/images/it-works.png">
-	</div>
+	<div class="container pt-5">
+
+        <div class="alert alert-dark" role="alert">
+            <p class="text-monospace">print("Hello world!")</p>
+        </div>
+
+        <p>
+            <span class="badge badge-pill badge-dark mr-4 mb-2" style="font-size: 18px;">Landing page</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2" style="font-size: 18px;">Short overview</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2" style="font-size: 18px;">$(whoami)</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2" style="font-size: 18px;">What I do</span>
+        </p>
+
+        <div class="row">
+            <div class="col">
+                <div class="card text-white bg-dark mb-3" style="min-width: 18rem;">
+                    <div class="card-header"><i class="fas fa-laptop-code" style="font-size: 24px;"></i></div>
+                    <div class="card-body">
+                        <h5 class="card-title">iOS Software Engineer @immowelt</h5>
+                        <p class="card-text">I work in the Hamburg office. My team is among others responsible for our real estate search apps.</p>
+                        <a href="https://itunes.apple.com/de/app/id354119842" class="btn btn-warning" target="_blank">Immowelt iPhone App</a>
+                        <br>
+                        <br>
+                        <a href="https://itunes.apple.com/app/id394618916" class="btn btn-primary" target="_blank">Immonet iPhone App</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card text-white bg-dark mb-3" style="min-width: 18rem;">
+                    <div class="card-header"><i class="fas fa-ring" style="font-size: 24px;"></i></div>
+                    <div class="card-body">
+                        <h5 class="card-title">Family guy</h5>
+                        <p class="card-text">I'm married and a daddy :-)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card text-white bg-dark mb-3" style="min-width: 18rem;">
+                    <div class="card-header"><i class="fas fa-luggage-cart" style="font-size: 24px;"></i></div>
+                    <div class="card-body">
+                        <h5 class="card-title">Traveler 4731</h5>
+                        <p class="card-text">I love to travel and to meet people when abroad.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
 #embed("base")
