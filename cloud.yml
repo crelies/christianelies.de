@@ -1,4 +1,3 @@
 type: "vapor"
-swift_version: "4.2.0"
-docker_template: "vapor-3.1.1"
+swift_version: "4.1.0"
 run_parameters: "serve --hostname 0.0.0.0 --port 80"
