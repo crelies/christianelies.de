@@ -49,6 +49,10 @@
                 </div>
             </div>
         </div>
+
+        <div class="alert alert-dark" role="alert">
+            <p class="text-monospace">LegalNotice(name: "Christian Elies", street: "Altenbrückerdamm", houseNumber: "7", zipCode: "21337", city: "Lüneburg")</p>
+        </div>
     </div>
 }
 
