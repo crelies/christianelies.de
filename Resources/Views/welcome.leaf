@@ -1,23 +1,23 @@
 #set("title") { It works }
 
 #set("body") {
-	<div class="container pt-5">
+	<div class="container pt-5 pb-5">
 
         <div class="alert alert-dark" role="alert">
             <p class="text-monospace">print("Hello world!")</p>
         </div>
 
         <p>
-            <span class="badge badge-pill badge-dark mr-4 mb-2" style="font-size: 18px;">Landing page</span>
-            <span class="badge badge-pill badge-dark mr-4 mb-2" style="font-size: 18px;">Short overview</span>
-            <span class="badge badge-pill badge-dark mr-4 mb-2" style="font-size: 18px;">$(whoami)</span>
-            <span class="badge badge-pill badge-dark mr-4 mb-2" style="font-size: 18px;">What I do</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18">Landing page</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18">Short overview</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18">$(whoami)</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18">What I do</span>
         </p>
 
         <div class="row">
             <div class="col">
-                <div class="card text-white bg-dark mb-3" style="min-width: 18rem;">
-                    <div class="card-header"><i class="fas fa-laptop-code" style="font-size: 24px;"></i></div>
+                <div class="card text-white bg-dark mb-3 mw-22">
+                    <div class="card-header"><i class="fas fa-laptop-code fs-32"></i></div>
                     <div class="card-body">
                         <h5 class="card-title">iOS Software Engineer @immowelt</h5>
                         <p class="card-text">I work in the Hamburg office. My team is among others responsible for our real estate search apps.</p>
@@ -30,8 +30,8 @@
             </div>
 
             <div class="col">
-                <div class="card text-white bg-dark mb-3" style="min-width: 18rem;">
-                    <div class="card-header"><i class="fas fa-ring" style="font-size: 24px;"></i></div>
+                <div class="card text-white bg-dark mb-3 mw-22">
+                    <div class="card-header"><i class="fas fa-ring fs-32"></i></div>
                     <div class="card-body">
                         <h5 class="card-title">Family guy</h5>
                         <p class="card-text">I'm married and a daddy :-)</p>
@@ -40,11 +40,57 @@
             </div>
 
             <div class="col">
-                <div class="card text-white bg-dark mb-3" style="min-width: 18rem;">
-                    <div class="card-header"><i class="fas fa-luggage-cart" style="font-size: 24px;"></i></div>
+                <div class="card text-white bg-dark mb-3 mw-22">
+                    <div class="card-header"><i class="fas fa-luggage-cart fs-32"></i></div>
                     <div class="card-body">
                         <h5 class="card-title">Traveler 4731</h5>
                         <p class="card-text">I love to travel and to meet people when abroad.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <div class="card text-white bg-dark mb-3 mw-14">
+                    <div class="card-header"><i class="fab fa-github fs-32"></i></div>
+                    <div class="card-body">
+                        <!-- <h5 class="card-title">Github</h5> -->
+                        <p class="card-text">Take a look at my <a href="https://github.com/crelies" class="btn btn-primary" target="_blank">repositories</a> if you want ;)</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card text-white bg-dark mb-3 mw-14">
+                    <div class="card-header"><i class="fab fa-stack-overflow fs-32"></i></div>
+                    <div class="card-body">
+                        <!-- <h5 class="card-title">StackOverflow</h5> -->
+                        <p class="card-text">
+                            <a href="https://stackoverflow.com/story/crelies" class="btn btn-primary" target="_blank">Here</a> is my Developer story.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card text-white bg-dark mb-3 mw-14">
+                    <div class="card-header"><i class="fab fa-xing fs-32"></i></div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            <a href="https://www.xing.com/profile/Christian_Elies2" class="btn btn-primary" target="_blank">Jump</a> to my profile.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card text-white bg-dark mb-3 mw-14">
+                    <div class="card-header"><i class="fab fa-linkedin fs-32"></i></div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            <a href="https://www.linkedin.com/in/christian-elies-b1009b104" class="btn btn-primary" target="_blank">Jump</a> to my profile.
+                        </p>
                     </div>
                 </div>
             </div>

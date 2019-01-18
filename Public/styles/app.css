@@ -3,5 +3,24 @@ body, html {
 }
 
 body {
+    background: #484848;
 	font-family: sans-serif;
+}
+
+.fs-18 {
+    font-size: 18px;
+}
+
+.fs-32 {
+    font-size: 32px;
+}
+
+.mw-14 {
+    min-width: 10rem;
+    max-width: 14rem;
+}
+
+.mw-22 {
+    min-width: 18rem;
+    max-width: 22rem;
 }
