@@ -3,101 +3,97 @@
 #set("body") {
 	<div class="container pt-5 pb-5">
 
-        <div class="alert alert-dark" role="alert">
+        <div class="alert alert-dark pb-0" role="alert">
             <p class="text-monospace">print("Hello world!")</p>
         </div>
 
         <p>
-            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18">Landing page</span>
-            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18">Short overview</span>
-            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18">$(whoami)</span>
-            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18">What I do</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18 text-monospace">Landing page</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18 text-monospace">Short overview</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18 text-monospace">$(whoami)</span>
+            <span class="badge badge-pill badge-dark mr-4 mb-2 fs-18 text-monospace">What I do</span>
         </p>
 
         <div class="row">
             <div class="col">
-                <div class="card text-white bg-dark mb-3 mw-22">
-                    <div class="card-header"><i class="fas fa-laptop-code fs-32"></i></div>
+                <div class="card text-white bg-dark mb-3 card-size">
+                    <div class="card-header">
+                        <i class="fas fa-laptop-code fs-32"></i>
+                    </div>
                     <div class="card-body">
                         <h5 class="card-title">iOS Software Engineer @immowelt</h5>
                         <p class="card-text">I work in the Hamburg office. My team is among others responsible for our real estate search apps.</p>
-                        <a href="https://itunes.apple.com/de/app/id354119842" class="btn btn-warning" target="_blank">Immowelt iPhone App</a>
-                        <br>
-                        <br>
-                        <a href="https://itunes.apple.com/app/id394618916" class="btn btn-primary" target="_blank">Immonet iPhone App</a>
+                        <div class="card-body">
+                            <a href="https://itunes.apple.com/de/app/id354119842" class="btn btn-warning" target="_blank">Immowelt iPhone App</a>
+                            <br>
+                            <br>
+                            <a href="https://itunes.apple.com/app/id394618916" class="btn btn-primary" target="_blank">Immonet iPhone App</a>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="col">
-                <div class="card text-white bg-dark mb-3 mw-22">
-                    <div class="card-header"><i class="fas fa-ring fs-32"></i></div>
-                    <div class="card-body">
-                        <h5 class="card-title">Family guy</h5>
-                        <p class="card-text">I'm married and a daddy :-)</p>
+                <div class="card text-white bg-dark mb-3 card-size">
+                    <div class="card-header">
+                        <i class="fas fa-user fs-32"></i>
                     </div>
+                    <!-- <div class="card-body">
+                        <h5 class="card-title">About me</h5>
+                        <p class="card-text">What you need to know ;)</p>
+                    </div> -->
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-dark">
+                            Family guy
+                        </li>
+                        <li class="list-group-item bg-dark">
+                            Minimalist
+                        </li>
+                        <li class="list-group-item bg-dark">
+                            Traveler 4731: I love to travel
+                        </li>
+                    </ul>
                 </div>
             </div>
 
             <div class="col">
-                <div class="card text-white bg-dark mb-3 mw-22">
-                    <div class="card-header"><i class="fas fa-luggage-cart fs-32"></i></div>
-                    <div class="card-body">
-                        <h5 class="card-title">Traveler 4731</h5>
-                        <p class="card-text">I love to travel and to meet people when abroad.</p>
+                <div class="card text-white bg-dark mb-3 card-size">
+                    <div class="card-header">
+                        <i class="fas fa-external-link-alt fs-32"></i>
                     </div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item bg-dark">
+                            <a href="https://github.com/crelies" class="btn btn-primary link-size mr-2" target="_blank">
+                                <i class="fab fa-github fs-32"></i>
+                            </a> Repositories
+                        </li>
+                        <li class="list-group-item bg-dark">
+                            <a href="https://medium.com/@crelies" class="btn btn-primary link-size mr-2" target="_blank">
+                                <i class="fab fa-medium fs-32"></i>
+                            </a> Profile
+                        </li>
+                        <li class="list-group-item bg-dark">
+                            <a href="https://stackoverflow.com/story/crelies" class="btn btn-primary link-size mr-2" target="_blank">
+                                <i class="fab fa-stack-overflow fs-32"></i>
+                            </a> Developer Story
+                        </li>
+                        <li class="list-group-item bg-dark">
+                            <a href="https://www.xing.com/profile/Christian_Elies2" class="btn btn-primary link-size mr-2" target="_blank">
+                                <i class="fab fa-xing fs-32"></i>
+                            </a> Profile
+                        </li>
+                        <li class="list-group-item bg-dark">
+                            <a href="https://www.linkedin.com/in/christian-elies-b1009b104" class="btn btn-primary link-size mr-2" target="_blank">
+                                <i class="fab fa-linkedin fs-32"></i>
+                            </a> Profile
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
 
-        <div class="row">
-            <div class="col">
-                <div class="card text-white bg-dark mb-3 mw-14">
-                    <div class="card-header"><i class="fab fa-github fs-32"></i></div>
-                    <div class="card-body">
-                        <!-- <h5 class="card-title">Github</h5> -->
-                        <p class="card-text">Take a look at my <a href="https://github.com/crelies" class="btn btn-primary" target="_blank">repositories</a> if you want ;)</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col">
-                <div class="card text-white bg-dark mb-3 mw-14">
-                    <div class="card-header"><i class="fab fa-stack-overflow fs-32"></i></div>
-                    <div class="card-body">
-                        <!-- <h5 class="card-title">StackOverflow</h5> -->
-                        <p class="card-text">
-                            <a href="https://stackoverflow.com/story/crelies" class="btn btn-primary" target="_blank">Here</a> is my Developer story.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col">
-                <div class="card text-white bg-dark mb-3 mw-14">
-                    <div class="card-header"><i class="fab fa-xing fs-32"></i></div>
-                    <div class="card-body">
-                        <p class="card-text">
-                            <a href="https://www.xing.com/profile/Christian_Elies2" class="btn btn-primary" target="_blank">Jump</a> to my profile.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col">
-                <div class="card text-white bg-dark mb-3 mw-14">
-                    <div class="card-header"><i class="fab fa-linkedin fs-32"></i></div>
-                    <div class="card-body">
-                        <p class="card-text">
-                            <a href="https://www.linkedin.com/in/christian-elies-b1009b104" class="btn btn-primary" target="_blank">Jump</a> to my profile.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="alert alert-dark" role="alert">
-            <p class="text-monospace">LegalNotice(name: "Christian Elies", street: "Altenbrückerdamm", houseNumber: "7", zipCode: "21337", city: "Lüneburg")</p>
+        <div class="alert alert-dark fs-12 pb-0 pt-1" role="alert">
+            <p class="text-monospace mb-1">LegalNotice(name: "Christian Elies", street: "Altenbrückerdamm", houseNumber: "7", zipCode: "21337", city: "Lüneburg")</p>
         </div>
     </div>
 }
