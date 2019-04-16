@@ -9,7 +9,9 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     // Register routes to the router
     let router = EngineRouter.default()
     try routes(router)
+    
     services.register(router, as: Router.self)
+    services.register(JSONFileService.self)
     
     // Use Leaf for rendering views
     config.prefer(LeafRenderer.self, for: ViewRenderer.self)

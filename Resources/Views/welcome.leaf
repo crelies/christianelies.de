@@ -93,7 +93,7 @@
         </div>
 
         <div class="alert alert-dark fs-12 pb-0 pt-1" role="alert">
-            <p class="text-monospace mb-1">LegalNotice(name: "Christian Elies", street: "Altenbrückerdamm", houseNumber: "7", zipCode: "21337", city: "Lüneburg")</p>
+            <p class="text-monospace mb-1">LegalNotice(name: "#(name)", streetAddress: "#(streetAddress)", zip: "#(zip)", city: "#(city)")</p>
         </div>
     </div>
 }
