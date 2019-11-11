@@ -2,7 +2,8 @@ import Foundation
 import Vapor
 
 protocol JSONFileServiceProtocol {
-    func getMe() -> Me?
+    func getMe() throws -> Me
+    func getLinks() throws -> [Link]
 }
 
 final class JSONFileService {
@@ -20,12 +21,18 @@ final class JSONFileService {
 }
 
 extension JSONFileService: JSONFileServiceProtocol {
-    func getMe() -> Me? {
+    func getMe() throws -> Me {
         let meJSONFileURL = publicDirectoryURL.appendingPathComponent("me.json")
-        guard let data = try? Data(contentsOf: meJSONFileURL) else {
-            return nil
-        }
-        return try? JSONDecoder().decode(Me.self, from: data)
+        let data = try Data(contentsOf: meJSONFileURL)
+        let me = try JSONDecoder().decode(Me.self, from: data)
+        return me
+    }
+
+    func getLinks() throws -> [Link] {
+        let jsonFileURL = publicDirectoryURL.appendingPathComponent("links.json")
+        let data = try Data(contentsOf: jsonFileURL)
+        let links = try JSONDecoder().decode([Link].self, from: data)
+        return links
     }
 }
 

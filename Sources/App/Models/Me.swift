@@ -5,4 +5,6 @@ struct Me: Codable {
     let streetAddress: String
     let zip: String
     let city: String
+    let job: Job
+    let tags: [String]
 }
