@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Repositories",
+    "url": "https://github.com/crelies",
+    "iconClass": "fa-github"
+  },
+  {
+    "name": "Profile",
+    "url": "https://medium.com/@crelies",
+    "iconClass": "fa-medium"
+  },
+  {
+    "name": "Developer Story",
+    "url": "https://stackoverflow.com/story/crelies",
+    "iconClass": "fa-stack-overflow"
+  },
+  {
+    "name": "Profile",
+    "url": "https://www.xing.com/profile/Christian_Elies2",
+    "iconClass": "fa-xing"
+  },
+  {
+    "name": "Profile",
+    "url": "https://www.linkedin.com/in/christian-elies-b1009b104",
+    "iconClass": "fa-linkedin"
+  }
+]

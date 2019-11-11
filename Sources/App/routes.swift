@@ -4,8 +4,15 @@ import Vapor
 public func routes(_ router: Router) throws {
     // "welcome" page
     router.get { req -> EventLoopFuture<View> in
-        let jsonFileService = try? req.make(JSONFileService.self)
-        let me = jsonFileService?.getMe()
-        return try req.view().render("welcome", ["name": me?.name, "streetAddress": me?.streetAddress, "zip": me?.zip, "city": me?.city])
+        do {
+            let jsonFileService = try req.make(JSONFileService.self)
+            let me = try jsonFileService.getMe()
+            let links = try jsonFileService.getLinks()
+            let welcomeContext = WelcomeContext(me: me, links: links)
+            return try req.view().render("welcome", welcomeContext)
+        } catch {
+            let welcomeContext = WelcomeContext(me: nil, links: [])
+            return try req.view().render("welcome", welcomeContext)
+        }
     }
 }
