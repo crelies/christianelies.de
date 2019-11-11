@@ -1,26 +1,15 @@
 {
   "city": "Lüneburg",
-  "email": "chris.elies13@gmail.com",
+  "email": "",
   "job": {
-    "apps": [
-      {
-        "btnClass": "btn-warning",
-        "name": "Immowelt iPhone App",
-        "url": "https://itunes.apple.com/de/app/id354119842"
-      },
-      {
-        "btnClass": "btn-primary",
-        "name": "Immonet iPhone App",
-        "url": "https://itunes.apple.com/app/id394618916"
-      }
-    ],
-    "description": "I work in the Hamburg office. My team is among others responsible for our real estate search apps.",
-    "title": "iOS Software Engineer @immowelt"
+    "apps": [],
+    "description": "I work in the Hamburg office. My team is among others responsible for the library eos.ticketingSuite.",
+    "title": "iOS Software Engineer @eos-uptrade"
   },
   "name": "Christian Elies",
   "streetAddress": "Altenbrückerdamm 7",
   "tags": [
-    "Family guy",
+    "Family person",
     "Minimalist",
     "Traveler 4731: I love to travel"
   ],
