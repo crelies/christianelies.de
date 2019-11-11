@@ -1,7 +1,7 @@
 #set("title") { It works }
 
 #set("body") {
-	<div class="container pt-5 pb-5">
+    <div class="container pt-5 pb-5">
 
         <div class="alert alert-dark pb-0" role="alert">
             <p class="text-monospace">print("Hello world!")</p>
@@ -23,16 +23,18 @@
                     <div class="card-body">
                         <h5 class="card-title">#(me.job.title)</h5>
                         <p class="card-text">#(me.job.description)</p>
-                        <div class="card-body">
-                            #for(jobApp in me.job.apps) {
-                                <a href="#(jobApp.url)" class="btn #(jobApp.btnClass)" target="_blank">#(jobApp.name)</a>
+                        #if(count(me.job.apps) > 0) {
+                            <div class="card-body">
+                                #for(jobApp in me.job.apps) {
+                                    <a href="#(jobApp.url)" class="btn #(jobApp.btnClass)" target="_blank">#(jobApp.name)</a>
 
-                                #if(!isLast) {
-                                    <br>
-                                    <br>
+                                    #if(!isLast) {
+                                        <br>
+                                        <br>
+                                    }
                                 }
-                            }
-                        </div>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -52,22 +54,24 @@
                 </div>
             </div>
 
-            <div class="col">
-                <div class="card text-white bg-dark mb-3 card-size">
-                    <div class="card-header">
-                        <i class="fas fa-external-link-alt fs-32"></i>
+            #if(count(links) > 0) {
+                <div class="col">
+                    <div class="card text-white bg-dark mb-3 card-size">
+                        <div class="card-header">
+                            <i class="fas fa-external-link-alt fs-32"></i>
+                        </div>
+                        <ul class="list-group list-group-flush">
+                            #for(link in links) {
+                                <li class="list-group-item bg-dark">
+                                    <a href="#(link.url)" class="btn btn-primary link-size mr-2" target="_blank">
+                                        <i class="fab #(link.iconClass) fs-32"></i>
+                                    </a> #(link.name)
+                                </li>
+                            }
+                        </ul>
                     </div>
-                    <ul class="list-group list-group-flush">
-                        #for(link in links) {
-                            <li class="list-group-item bg-dark">
-                                <a href="#(link.url)" class="btn btn-primary link-size mr-2" target="_blank">
-                                    <i class="fab #(link.iconClass) fs-32"></i>
-                                </a> #(link.name)
-                            </li>
-                        }
-                    </ul>
                 </div>
-            </div>
+            }
         </div>
 
         <div class="alert alert-dark fs-12 pb-0 pt-1" role="alert">
