@@ -26,8 +26,11 @@
                         <div class="card-body">
                             #for(jobApp in me.job.apps) {
                                 <a href="#(jobApp.url)" class="btn #(jobApp.btnClass)" target="_blank">#(jobApp.name)</a>
-                                <br>
-                                <br>
+
+                                #if(!isLast) {
+                                    <br>
+                                    <br>
+                                }
                             }
                         </div>
                     </div>
