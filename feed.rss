@@ -1,0 +1,1238 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content"><channel><title>Personal Website</title><description>Meet crelies</description><link>https://christianelies.de</link><language>en</language><lastBuildDate>Tue, 7 Jan 2020 22:48:41 +0100</lastBuildDate><pubDate>Tue, 7 Jan 2020 22:48:41 +0100</pubDate><ttl>250</ttl><atom:link href="https://christianelies.de/feed.rss" rel="self" type="application/rss+xml"/><item><guid isPermaLink="true">https://christianelies.de/posts/list-pagination</guid><title>Meet &amp; Greet - List Pagination in SwiftUI</title><description>How to add support for paginated API responses to SwiftUI lists</description><link>https://christianelies.de/posts/list-pagination</link><pubDate>Mon, 12 Aug 2019 18:00:00 +0200</pubDate><content:encoded><![CDATA[<h1>Meet &amp; Greet - List Pagination in SwiftUI</h1><a href="https://christianelies.de/tags/pagination"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">pagination</span></a><a href="https://christianelies.de/tags/swiftui"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">swiftui</span></a><p class="text-danger">12. Aug 2019</p><img src="list-pagination-header.png" alt="Screenshot of Bootstrap pagination"/><p><em>Screenshot of Bootstrap pagination</em></p><p>My latest SwiftUI demo project fetches data from a REST API and then paginates the responses. That’s why I was looking for an easy way to add pagination support to the SwiftUI List view.</p><p>In the current beta (Xcode 11 beta 5), there isn’t a ready-to-use functionality provided. That’s why we’ll implement a simple solution in the next few minutes.</p><h2>The Goal</h2><p>While we can access an item in the current iteration in the content block of the List view, we know nothing about its current position in the list or how close we are to the end of the list. That’s where pagination comes in.</p><p><em>Pagination</em> can mean different things to different people. So let’s start by defining my desired end goal:</p><blockquote><p>During scrolling, the list should fetch and append the items of the next pages. A loading view should be displayed when the user reaches the end of the list and a request is still in progress.</p></blockquote><p>With this end in mind, let’s implement a solution that fixes these problems and adds pagination support to the List view.</p><h2>The Implementation</h2><p>In this section, we’ll take a look at two different approaches. While the first approach is more obvious, advanced users may appreciate the user-oriented functionality of the second approach.</p><h3>First approach</h3><p>A simple solution is to check if the item in the current iteration is the last item of the list. If that’s true, we trigger an asynchronous request to fetch the items of the next page.</p><p><strong>RandomAccessCollection+isLastItem</strong></p><p>Because the List view supports <code>RandomAccessCollection</code> we can create an extension and implement an <code>isLastItem</code>function. The key is the <code>Self </code>requirement, which restricts the extension to collections where the elements conform to the <code>Identifiable</code> protocol.</p><pre><code><span class="keyword">extension</span> <span class="type">RandomAccessCollection</span> <span class="keyword">where</span> <span class="type">Self</span>.<span class="type">Element</span>: <span class="type">Identifiable</span> {
+    <span class="keyword">func</span> isLastItem&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> item: <span class="type">Item</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">guard</span> !isEmpty <span class="keyword">else</span> {
+            <span class="keyword">return false</span>
+        }
+        
+        <span class="keyword">guard let</span> itemIndex = <span class="call">firstIndex</span>(where: { $0.<span class="property">id</span>.<span class="property">hashValue</span> == item.<span class="property">id</span>.<span class="property">hashValue</span> }) <span class="keyword">else</span> {
+            <span class="keyword">return false</span>
+        }
+        
+        <span class="keyword">let</span> distance = <span class="keyword">self</span>.<span class="call">distance</span>(from: itemIndex, to: endIndex)
+        <span class="keyword">return</span> distance == <span class="number">1</span>
+    }
+}
+</code></pre><p>You pass an item conforming to the <code>Identifiable</code> protocol to the function, and it returns true if the item is the last item in the collection.</p><blockquote><p>The function looks for the index of the given item in the collection. It uses the hash value of the <code>*id*</code> property (requirement of the <code>*Identifiable*</code> protocol) to compare it to the other items in the list. If the item index is found, that means the distance between the item index and the end index has to be exactly one (the end index is equal to the current number of items in the collection). That’s how we know the given item is the last item.</p></blockquote><p>Instead of comparing the hash values, we can use the type-erased wrapper <code>AnyHashable</code> to directly compare the ids which are of the type <code>Hashable</code>.</p><pre><code><span class="keyword">guard let</span> itemIndex = <span class="call">firstIndex</span>(where: { <span class="type">AnyHashable</span>($0.<span class="property">id</span>) == <span class="type">AnyHashable</span>(item.<span class="property">id</span>) }) <span class="keyword">else</span> {
+    <span class="keyword">return false</span>
+}
+</code></pre><p>Now that the groundwork is laid, we can implement the user interface.</p><p><strong>User interface</strong></p><p>We want to trigger a list update if the end is reached. To achieve that we can use the <code>onAppear</code> modifier on the root view of each item. (In this example, it’s a VStack.) This calls the<code>listItemAppears</code> function below. We’ll take a look at that in a minute.</p><p>If the item of the current iteration is the last item, a loading view will be shown to the user. In this simple example, it’s the <code>Text(“Loading …”)</code>.</p><p>Since SwiftUI is declarative, the following code should be self-explanatory:</p><pre><code><span class="keyword">struct</span> ListPaginationExampleView: <span class="type">View</span> {
+    <span class="keyword">@State private var</span> items: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">24</span>).<span class="call">map</span> { <span class="string">"Item</span> \($0)<span class="string">"</span> }
+    <span class="keyword">@State private var</span> isLoading: <span class="type">Bool</span> = <span class="keyword">false
+    @State private var</span> page: <span class="type">Int</span> = <span class="number">0</span>
+    <span class="keyword">private let</span> pageSize: <span class="type">Int</span> = <span class="number">25</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(items) { item <span class="keyword">in</span>
+                <span class="type">VStack</span>(alignment: .<span class="dotAccess">leading</span>) {
+                    <span class="type">Text</span>(item)
+                    
+                    <span class="keyword">if self</span>.<span class="property">isLoading</span> &amp;&amp; <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">isLastItem</span>(item) {
+                        <span class="type">Divider</span>()
+                        <span class="type">Text</span>(<span class="string">"Loading ..."</span>)
+                            .<span class="call">padding</span>(.<span class="dotAccess">vertical</span>)
+                    }
+                }.<span class="call">onAppear</span> {
+                    <span class="keyword">self</span>.<span class="call">listItemAppears</span>(item)
+                }
+            }
+            .<span class="call">navigationBarTitle</span>(<span class="string">"List of items"</span>)
+            .<span class="call">navigationBarItems</span>(trailing: <span class="type">Text</span>(<span class="string">"Page index:</span> \(page)<span class="string">"</span>))
+        }
+    }
+}
+</code></pre><blockquote><p>The helper function <code>***listItemAppears\***</code> internally checks if the given item is the last item. If it’s the last item the current page is increased, and the items of the next page are appended to the list. In addition, we keep track of the loading state through the <code>***isLoading\***</code> variable, which defines when to show the loading view.</p></blockquote><pre><code><span class="keyword">extension</span> <span class="type">ListPaginationExampleView</span> {
+    <span class="keyword">private func</span> listItemAppears&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> item: <span class="type">Item</span>) {
+        <span class="keyword">if</span> items.<span class="call">isLastItem</span>(item) {
+            isLoading = <span class="keyword">true</span>
+            
+            <span class="comment">/*
+                Simulated async behaviour:
+                Creates items for the next page and
+                appends them to the list after a short delay
+             */</span>
+            <span class="type">DispatchQueue</span>.<span class="property">main</span>.<span class="call">asyncAfter</span>(deadline: <span class="type">DispatchTime</span>.<span class="call">now</span>() + <span class="number">3</span>) {
+                <span class="keyword">self</span>.<span class="property">page</span> += <span class="number">1</span>
+                <span class="keyword">let</span> moreItems = <span class="keyword">self</span>.<span class="call">getMoreItems</span>(forPage: <span class="keyword">self</span>.<span class="property">page</span>, pageSize: <span class="keyword">self</span>.<span class="property">pageSize</span>)
+                <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">append</span>(contentsOf: moreItems)
+                
+                <span class="keyword">self</span>.<span class="property">isLoading</span> = <span class="keyword">false</span>
+            }
+        }
+    }
+}
+</code></pre><p>With this implementation, we fetch the next page of items only if the item in the current iteration <em>is</em> the last item.</p><p>But that’s not really the best user experience, right? In a real app, we’d want to preload the next page should a defined threshold be reached or passed. Further, we should only disrupt the user with a loading indicator if truly necessary (i.e. if the request takes longer than expected). This, in my opinion, would lead to a better user experience.</p><p>Given these user-experience concerns, let’s hop on over to the second approach.</p><h3>Second approach</h3><p>Here we’ll learn how to fetch the next page of items if a given threshold is passed.</p><p><strong>RandomAccessCollection+isThresholdItem</strong></p><p>Again, we’ll begin by extending the <code>RandomAccessCollection</code>. This time we’ll implement a function called <code>isThresholdItem</code> which determines if the given item is the threshold item.</p><pre><code><span class="keyword">extension</span> <span class="type">RandomAccessCollection</span> <span class="keyword">where</span> <span class="type">Self</span>.<span class="type">Element</span>: <span class="type">Identifiable</span> {
+    <span class="keyword">func</span> isThresholdItem&lt;Item: <span class="type">Identifiable</span>&gt;(offset: <span class="type">Int</span>,
+                                             item: <span class="type">Item</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">guard</span> !isEmpty <span class="keyword">else</span> {
+            <span class="keyword">return false</span>
+        }
+        
+        <span class="keyword">guard let</span> itemIndex = <span class="call">firstIndex</span>(where: { <span class="type">AnyHashable</span>($0.<span class="property">id</span>) == <span class="type">AnyHashable</span>(item.<span class="property">id</span>) }) <span class="keyword">else</span> {
+            <span class="keyword">return false</span>
+        }
+        
+        <span class="keyword">let</span> distance = <span class="keyword">self</span>.<span class="call">distance</span>(from: itemIndex, to: endIndex)
+        <span class="keyword">let</span> offset = offset &lt; count ? offset : count - <span class="number">1</span>
+        <span class="keyword">return</span> offset == (distance - <span class="number">1</span>)
+    }
+}
+</code></pre><blockquote><p>This function looks for the index of the given item. If found, it calculates the distance to the end index. The specified offset (i.e. the number of items before the end) should be equal to <code>***distance — 1\***</code>. We have to substract 1 from the distance because the end index equals the value of the count property (i.e. the current number of items in the collection). I also added a simple validation check for the offset. The offset should be less than the current number of items in the collection.</p></blockquote><p>Now we’re ready to move on to the user interface once again.</p><p><strong>User interface</strong></p><p>The UI implementation is nearly identical to our UI in the first approach. There is one key difference, however, and that’s in the <code>listItemAppears</code> function.</p><blockquote><p>Keep in mind that we reuse the <code>*isLastItem*</code> function from the first approach here. The loading view will show only if the user reaches the end of the list and the request for the next page is still in progress.</p></blockquote><pre><code><span class="keyword">struct</span> ListPaginationThresholdExampleView: <span class="type">View</span> {
+    <span class="keyword">@State private var</span> items: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">24</span>).<span class="call">map</span> { <span class="string">"Item</span> \($0)<span class="string">"</span> }
+    <span class="keyword">@State private var</span> isLoading: <span class="type">Bool</span> = <span class="keyword">false
+    @State private var</span> page: <span class="type">Int</span> = <span class="number">0</span>
+    <span class="keyword">private let</span> pageSize: <span class="type">Int</span> = <span class="number">25</span>
+    <span class="keyword">private let</span> offset: <span class="type">Int</span> = <span class="number">10</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(items) { item <span class="keyword">in</span>
+                <span class="type">VStack</span>(alignment: .<span class="dotAccess">leading</span>) {
+                    <span class="type">Text</span>(item)
+                    
+                    <span class="keyword">if self</span>.<span class="property">isLoading</span> &amp;&amp; <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">isLastItem</span>(item) {
+                        <span class="type">Divider</span>()
+                        <span class="type">Text</span>(<span class="string">"Loading ..."</span>)
+                            .<span class="call">padding</span>(.<span class="dotAccess">vertical</span>)
+                    }
+                }.<span class="call">onAppear</span> {
+                    <span class="keyword">self</span>.<span class="call">listItemAppears</span>(item)
+                }
+            }
+            .<span class="call">navigationBarTitle</span>(<span class="string">"List of items"</span>)
+            .<span class="call">navigationBarItems</span>(trailing: <span class="type">Text</span>(<span class="string">"Page index:</span> \(page)<span class="string">"</span>))
+        }
+    }
+}
+</code></pre><blockquote><p>Instead of calling <code>***isLastItem\***</code><em>,</em> we call <code>***isThresholdItem\***</code> to check if the given item is the threshold item.</p></blockquote><pre><code><span class="keyword">extension</span> <span class="type">ListPaginationThresholdExampleView</span> {
+    <span class="keyword">private func</span> listItemAppears&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> item: <span class="type">Item</span>) {
+        <span class="keyword">if</span> items.<span class="call">isThresholdItem</span>(offset: offset,
+                                 item: item) {
+            isLoading = <span class="keyword">true</span>
+            
+            <span class="comment">/*
+                Simulated async behaviour:
+                Creates items for the next page and
+                appends them to the list after a short delay
+             */</span>
+            <span class="type">DispatchQueue</span>.<span class="property">main</span>.<span class="call">asyncAfter</span>(deadline: <span class="type">DispatchTime</span>.<span class="call">now</span>() + <span class="number">0.5</span>) {
+                <span class="keyword">self</span>.<span class="property">page</span> += <span class="number">1</span>
+                <span class="keyword">let</span> moreItems = <span class="keyword">self</span>.<span class="call">getMoreItems</span>(forPage: <span class="keyword">self</span>.<span class="property">page</span>, pageSize: <span class="keyword">self</span>.<span class="property">pageSize</span>)
+                <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">append</span>(contentsOf: moreItems)
+                
+                <span class="keyword">self</span>.<span class="property">isLoading</span> = <span class="keyword">false</span>
+            }
+        }
+    }
+}
+</code></pre><p>If you’re an especially attentive reader, you may have noticed some pieces of code are missing. Let’s get to those in the next section.</p><h3>Missing code pieces</h3><p><strong>getMoreItems</strong></p><p>The following shows the implementation of the <code>getMoreItems</code> function:</p><pre><code><span class="keyword">extension</span> <span class="type">ListPaginationExampleView</span> {
+    <span class="comment">/*
+        In a real app you would probably fetch data
+        from an external API.
+     */</span>
+    <span class="keyword">private func</span> getMoreItems(forPage page: <span class="type">Int</span>,
+                              pageSize: <span class="type">Int</span>) -&gt; [<span class="type">String</span>] {
+        <span class="keyword">let</span> maximum = ((page * pageSize) + pageSize) - <span class="number">1</span>
+        <span class="keyword">let</span> moreItems: [<span class="type">String</span>] = <span class="type">Array</span>(items.<span class="property">count</span>...maximum).<span class="call">map</span> { <span class="string">"Item</span> \($0)<span class="string">"</span> }
+        <span class="keyword">return</span> moreItems
+    }
+}
+</code></pre><p><strong>String+Identifiable</strong></p><p>Here’s the final extension needed to make the code for the <em>List</em> <em>view</em> work:</p><pre><code><span class="comment">/*
+    If you want to display an array of strings
+    in the List view you have to specify a key path,
+    so each string can be uniquely identified.
+    With this extension you don't have to do that.
+ */</span>
+<span class="keyword">extension</span> <span class="type">String</span>: <span class="type">Identifiable</span> {
+    <span class="keyword">public var</span> id: <span class="type">String</span> {
+        <span class="keyword">return self</span>
+    }
+}
+</code></pre><p>This string extension makes it easy to directly use an array of strings in the related List view initializer.</p><h2>The Result</h2><p>Finally, let’s look at our results.</p><p>The first GIF shows the <code>isLastItem</code> approach:</p><img src="list-pagination-last-item.gif" alt="Animated image showing the last-item approach on iPhone XR simulator"/><p><em>Animated image showing the last-item approach on iPhone XR simulator</em></p><p>The next gif shows the <code>isThresholdItem</code> approach:</p><img src="list-pagination-threshold.gif" alt="Animated image showing threshold approach on iPhone XR simulator"/><p><em>Animated image showing threshold approach on iPhone XR simulator</em></p><p>Congrats! You are now ready to use pagination in your SwiftUI lists.</p><p>Thanks again for reading one of my articles!</p><h2>Resources</h2><p>Here’s the code for this article:</p><p><a href="https://github.com/crelies/List-Pagination-SwiftUI"><strong>crelies/List-Pagination-SwiftUI</strong></a></p><p>Also available as a package:</p><p><a href="https://github.com/crelies/ListPagination"><strong>crelies/ListPagination</strong></a></p>]]></content:encoded></item><item><guid isPermaLink="true">https://christianelies.de/posts/remote-image-view</guid><title>Learn and Master Remote Image View in SwiftUI</title><description>Fetching, caching, error, and loading view</description><link>https://christianelies.de/posts/remote-image-view</link><pubDate>Mon, 12 Aug 2019 18:00:00 +0200</pubDate><content:encoded><![CDATA[<h1>Learn and Master Remote Image View in SwiftUI</h1><a href="https://christianelies.de/tags/image"><span class="badge badge-pill badge-success fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">image</span></a><a href="https://christianelies.de/tags/swiftui"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">swiftui</span></a><p class="text-danger">12. Aug 2019</p><img src="remote-image-view-header.png" alt="Fictional RemoteImage initializer"/><p><em>Fictional RemoteImage initializer</em></p><p><strong>Update 2019/08/14:</strong> Now available as a <a href="https://github.com/crelies/RemoteImage">Swift package</a> 🚀</p><p>I want to implement a <a href="https://developer.apple.com/documentation/swiftui">SwiftUI</a> pendant of the UIKit remote image view we created at my current employer. I can’t share the code but believe me that compared to the following SwiftUI implementation our UIKit code is more complex, uses an external framework, and has more lines of code.</p><h2>The Goal</h2><p>Let’s start with a short description of the article’s goal:</p><p>Our goal is to create a view that fetches the image at a given URL, shows a loading view during fetching, caches the image, uses the existing SwiftUI image view, and shows an error view if needed.</p><p>With this end in mind, let’s start coding.</p><h2>The Implementation</h2><p>The code mainly consists of three components.</p><h3>1. RemoteImageState</h3><p>The remote image view can have three different states: error, image, and loading. It should be able to render itself dependent on its current state.</p><pre><code><span class="keyword">enum</span> RemoteImageState {
+    <span class="keyword">case</span> error(<span class="keyword">_</span> error: <span class="type">Error</span>)
+    <span class="keyword">case</span> image(<span class="keyword">_</span> image: <span class="type">UIImage</span>)
+    <span class="keyword">case</span> loading
+}
+</code></pre><h3>2. RemoteImageService</h3><p>We need a service that takes care of fetching and caching the image. In addition to that, it should manage the current state of the related remote image.</p><p><strong>Fetching image</strong></p><p>The HTTP request is done using the standard tools (<code>URLSession</code> and <code>URLRequest</code>) in combination with a simple data task publisher and a sink subscriber (Combine framework).</p><p><strong>Caching image</strong></p><p>Caching is done with <code>NSCache</code>. Simple, right? All remote images in one SwiftUI application should share the same cache, therefore the cache is static. The cache can easily be cleared through its <code>removeAllObjects()</code> function.</p><p><strong>State changes</strong></p><p>The service conforms to the <code>ObservableObject</code> protocol and propagates the state changes made in the <code>fetchImage</code>function through a simple <code>PassthroughSubject</code> to every subscriber.</p><pre><code><span class="keyword">final class</span> RemoteImageService: <span class="type">ObservableObject</span> {
+    <span class="keyword">private var</span> cancellable: <span class="type">AnyCancellable</span>?
+    
+    <span class="keyword">static let</span> cache = <span class="type">NSCache</span>&lt;<span class="type">NSURL</span>, <span class="type">UIImage</span>&gt;()
+    
+    <span class="keyword">var</span> state: <span class="type">RemoteImageState</span> = .<span class="call">loading</span> {
+        <span class="keyword">didSet</span> {
+            objectWillChange.<span class="call">send</span>()
+        }
+    }
+    
+    <span class="keyword">let</span> objectWillChange = <span class="type">PassthroughSubject</span>&lt;<span class="type">Void</span>, <span class="type">Never</span>&gt;()
+    
+    <span class="keyword">func</span> fetchImage(atURL url: <span class="type">URL</span>) {
+        cancellable?.<span class="call">cancel</span>()
+        
+        <span class="keyword">if let</span> image = <span class="type">RemoteImageService</span>.<span class="property">cache</span>.<span class="call">object</span>(forKey: url <span class="keyword">as</span> <span class="type">NSURL</span>) {
+            state = .<span class="call">image</span>(image)
+            <span class="keyword">return</span>
+        }
+        
+        <span class="keyword">let</span> urlSession = <span class="type">URLSession</span>.<span class="property">shared</span>
+        <span class="keyword">let</span> urlRequest = <span class="type">URLRequest</span>(url: url)
+        
+        cancellable = urlSession.<span class="call">dataTaskPublisher</span>(for: urlRequest)
+            .<span class="call">map</span> { <span class="type">UIImage</span>(data: $0.<span class="property">data</span>) }
+            .<span class="call">receive</span>(on: <span class="type">RunLoop</span>.<span class="property">main</span>)
+            .<span class="call">sink</span>(receiveCompletion: { completion <span class="keyword">in
+                switch</span> completion {
+                    <span class="keyword">case</span> .<span class="dotAccess">failure</span>(<span class="keyword">let</span> failure):
+                        <span class="keyword">self</span>.<span class="property">state</span> = .<span class="call">error</span>(failure)
+                    <span class="keyword">default</span>: ()
+                }
+            }) { image <span class="keyword">in
+                if let</span> image = image {
+                    <span class="type">RemoteImageService</span>.<span class="property">cache</span>.<span class="call">setObject</span>(image, forKey: url <span class="keyword">as</span> <span class="type">NSURL</span>)
+                    <span class="keyword">self</span>.<span class="property">state</span> = .<span class="call">image</span>(image)
+                } <span class="keyword">else</span> {
+                    <span class="keyword">self</span>.<span class="property">state</span> = .<span class="call">error</span>(<span class="type">RemoteImageServiceError</span>.<span class="property">couldNotCreateImage</span>)
+                }
+            }
+    }
+}
+</code></pre><h3>3. RemoteImage</h3><p>This last component is the view itself. It uses an instance of <code>RemoteImageService</code> and renders itself dependent on the state in the service.</p><p>The initializer expects a URL and a <code>ViewBuilder</code> block for each state (error, image, and loading).</p><p><strong>Fetching image</strong></p><p>As soon as the <code>LoadingView</code> appears on the screen, the <code>fetchImage</code> function of the <code>RemoteImageService</code> instance is triggered.</p><p><strong>Customising image appearance</strong></p><p>Internally the <code>RemoteImage</code> view uses the existing Image view of SwiftUI. To be able to customise the appearance of that Image view, it’s exposed through the related <code>ViewBuilder</code> block.</p><p><strong>An error occurred</strong></p><p>If an error occurs, the error view <code>ViewBuilder</code> is called. The error is passed to the <code>ViewBuilder</code> block and can be used to create an error view.</p><p><strong>AnyView</strong></p><p>In this implementation, I had to use the type erased wrapper <code>AnyView</code> to erase the different types of views returned in the switch.</p><p>Normally the Group view could solve that kind of problem. But the content block of the Group view is a <code>ViewBuilder</code>block, and you can’t use the switch statement below (an enum with associated values) in a <code>ViewBuilder</code> block.</p><pre><code><span class="keyword">struct</span> RemoteImage&lt;ErrorView: <span class="type">View</span>, ImageView: <span class="type">View</span>, LoadingView: <span class="type">View</span>&gt;: <span class="type">View</span> {
+    <span class="keyword">private let</span> url: <span class="type">URL</span>
+    <span class="keyword">private let</span> errorView: (<span class="type">Error</span>) -&gt; <span class="type">ErrorView</span>
+    <span class="keyword">private let</span> imageView: (<span class="type">Image</span>) -&gt; <span class="type">ImageView</span>
+    <span class="keyword">private let</span> loadingView: () -&gt; <span class="type">LoadingView</span>
+    <span class="keyword">@ObservedObject private var</span> service: <span class="type">RemoteImageService</span> = <span class="type">RemoteImageService</span>()
+    
+    <span class="keyword">var</span> body: <span class="type">AnyView</span> {
+        <span class="keyword">switch</span> service.<span class="call">state</span> {
+            <span class="keyword">case</span> .<span class="dotAccess">error</span>(<span class="keyword">let</span> error):
+                <span class="keyword">return</span> <span class="type">AnyView</span>(
+                    <span class="call">errorView</span>(error)
+                )
+            <span class="keyword">case</span> .<span class="dotAccess">image</span>(<span class="keyword">let</span> image):
+                <span class="keyword">return</span> <span class="type">AnyView</span>(
+                    <span class="keyword">self</span>.<span class="call">imageView</span>(<span class="type">Image</span>(uiImage: image))
+                )
+            <span class="keyword">case</span> .<span class="dotAccess">loading</span>:
+                <span class="keyword">return</span> <span class="type">AnyView</span>(
+                    <span class="call">loadingView</span>()
+                    .<span class="call">onAppear</span> {
+                        <span class="keyword">self</span>.<span class="property">service</span>.<span class="call">fetchImage</span>(atURL: <span class="keyword">self</span>.<span class="property">url</span>)
+                    }
+                )
+        }
+    }
+    
+    <span class="keyword">init</span>(url: <span class="type">URL</span>, <span class="keyword">@ViewBuilder</span> errorView: <span class="keyword">@escaping</span> (<span class="type">Error</span>) -&gt; <span class="type">ErrorView</span>, <span class="keyword">@ViewBuilder</span> imageView: <span class="keyword">@escaping</span> (<span class="type">Image</span>) -&gt; <span class="type">ImageView</span>, <span class="keyword">@ViewBuilder</span> loadingView: <span class="keyword">@escaping</span> () -&gt; <span class="type">LoadingView</span>) {
+        <span class="keyword">self</span>.<span class="property">url</span> = url
+        <span class="keyword">self</span>.<span class="property">errorView</span> = errorView
+        <span class="keyword">self</span>.<span class="property">imageView</span> = imageView
+        <span class="keyword">self</span>.<span class="property">loadingView</span> = loadingView
+    }
+}
+</code></pre><h2>Example</h2><p>Last but not least, we take a look at a usage example.</p><p>The created Remote Image view is easy to use. Just pass a URL, your error view, your image, and your loading view to the initializer.</p><pre><code><span class="keyword">struct</span> ContentView: <span class="type">View</span> {
+    <span class="keyword">private let</span> url = <span class="type">URL</span>(string: <span class="string">"https://images.unsplash.com/photo-1524419986249-348e8fa6ad4a?ixlib=rb-1.2.1&amp;ixid=eyJhcHBfaWQiOjEyMDd9&amp;auto=format&amp;fit=crop&amp;w=1950&amp;q=80"</span>)!
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">RemoteImage</span>(url: url, errorView: { error <span class="keyword">in</span>
+            <span class="type">Text</span>(error.<span class="property">localizedDescription</span>)
+        }, imageView: { image <span class="keyword">in</span>
+            image
+            .<span class="call">resizable</span>()
+            .<span class="call">aspectRatio</span>(contentMode: .<span class="dotAccess">fit</span>)
+        }, loadingView: {
+            <span class="type">Text</span>(<span class="string">"Loading ..."</span>)
+        })
+    }
+}
+</code></pre><p>Take a look at how I customised the appearance of the Image: I made it resizable and changed the content mode to fit.</p><img src="remote-image-view-example.gif" alt="Animated image showing the result on the iPhone XR simulator"/><p><em>Animated image showing the result on the iPhone XR simulator</em></p><h2>Conclusion</h2><p>Congratulations! You finished this lesson about creating a remote image SwiftUI view.</p><p>Thanks for reading this article. I hope you continue reading my articles. Stay tuned.</p><p>See it on GitHub at https://github.com/crelies/RemoteImage-SwiftUI</p>]]></content:encoded></item><item><guid isPermaLink="true">https://christianelies.de/posts/type-erasure</guid><title>Learn &amp; Master ⚔️ Type Erasure in 6 Minutes</title><description>Type Erasure explained through common use cases</description><link>https://christianelies.de/posts/type-erasure</link><pubDate>Mon, 22 Jul 2019 18:00:00 +0200</pubDate><content:encoded><![CDATA[<h1>Learn &amp; Master ⚔️ Type Erasure in 6 Minutes</h1><a href="https://christianelies.de/tags/typeerasure"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">type-erasure</span></a><a href="https://christianelies.de/tags/swift"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">swift</span></a><p class="text-danger">22. Jul 2019</p><img src="type-erasure-header.png" alt="Example constant of type Any"/><p><em>Example constant of type Any</em></p><p>Some of you may already be familiar with <strong>Type Erasure</strong> and know how to use it. But I’m certain there are still people out there which don’t know about it or don’t know how to use it.</p><p><strong>Honestly</strong>, I didn’t take a look at it before writing my article about <a href="https://medium.com/better-programming/meet-greet-advanced-lists-in-swiftui-80ab6f08ca03"><em>Advanced Lists</em> in <strong>SwiftUI</strong></a>. It was a little mystery for me since I listened to a <em>not so good</em> talk at a developer conference a while ago.</p><p>Before lifting the secret <em>Type Erasure</em> let’s take a look at the problem it solved for me.</p><h2>The Problem 💣</h2><p>I wanted to store objects conforming to two different protocols in an array. When dealing with simple protocols the implementation is simple as well.</p><pre><code><span class="keyword">protocol</span> ProtocolA {}
+<span class="keyword">protocol</span> ProtocolB {}
+<span class="keyword">let</span> objects: [<span class="type">ProtocolA</span> &amp; <span class="type">ProtocolB</span>] = []
+</code></pre><p>In the real world protocols are often more complex (<em>like in my case</em>) and have <strong>*associated type*</strong> <em>and/or</em> <strong>*Self requirements*</strong>. Let’s take the <strong>Equatable</strong> protocol for example.</p><pre><code><span class="keyword">let</span> objects: [<span class="type">Equatable</span>] = []
+</code></pre><p>This code <strong>will not compile</strong> because the <em>Equatable</em> protocol has <em>Self requirements</em>. Therefore the protocol <strong>can only be used as a</strong> <strong>generic constraint</strong>.</p><img src="type-erasure-compiler-error.png" alt="Compiler error"/><p><em>One more thing</em> left before the solution: a <strong>definition</strong> of <em>Type Erasure</em>.</p><h2>Type Erasure</h2><p>Here is my definition of <em>Type Erasure</em>:</p><blockquote><p>It’s a technique used to solve the problems which occur when dealing with protocols having associated type and/or Self requirements.</p></blockquote><blockquote><p>Type Erasure erases the type information in the first place while still constraining to the specific type. Its achieved with the implementation of a box/wrapper type.</p></blockquote><p>I know it’s weird to erase the type information because we all love the statically typed language <strong>Swift</strong>, right? 🙃</p><p>Nevertheless let’s implement a solution to the aforementioned problem.</p><h2>The Solution 💡</h2><p>I implemented a type erased wrapper called <strong>AnyEquatable</strong>. It has a generic initializer which expects an object conforming to the E<em>quatable</em> protocol. The object is stored internally in an <em>Any</em> property, so the type information is lost.</p><blockquote><p>The <strong>key thing</strong> here is the <strong>*isEqualTo* block</strong>. This block gets another <em>AnyEquatable</em> object and tries to cast the <em>equatable</em> property of it to the type of the <em>Equatable</em> object passed to the initializer.</p></blockquote><p><em>AnyEquatable</em> itself conforms to the <em>Equatable</em> protocol and uses its <em>isEqualTo</em> block to do the equation. That way the conformance to the <em>Equatable</em> protocol is preserved regardless of the type erasure.</p><pre><code><span class="keyword">struct</span> AnyEquatable {
+    <span class="keyword">private let</span> isEqualTo: (<span class="type">AnyEquatable</span>) -&gt; <span class="type">Bool</span>
+    <span class="keyword">let</span> equatable: <span class="type">Any</span>
+    
+    <span class="keyword">init</span>&lt;<span class="type">T</span>: <span class="type">Equatable</span>&gt;(<span class="keyword">_</span> equatable: <span class="type">T</span>) {
+        <span class="keyword">self</span>.<span class="property">equatable</span> = equatable
+        <span class="keyword">self</span>.<span class="property">isEqualTo</span> = { anotherEquatable <span class="keyword">in
+            guard let</span> anotherEquatable = anotherEquatable.<span class="property">equatable</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return false</span>
+            }
+            
+            <span class="keyword">return</span> anotherEquatable == equatable
+        }
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyEquatable</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">AnyEquatable</span>, rhs: <span class="type">AnyEquatable</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="call">isEqualTo</span>(rhs)
+    }
+}
+</code></pre><p>Now, we are able to store different <em>Equatable</em> objects in the same array:</p><pre><code><span class="keyword">struct</span> Foo {
+    <span class="keyword">let</span> propertyA: <span class="type">String</span>
+}
+<span class="keyword">extension</span> <span class="type">Foo</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">Foo</span>, rhs: <span class="type">Foo</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="property">propertyA</span> == rhs.<span class="property">propertyA</span>
+    }
+}
+<span class="keyword">struct</span> Bar {
+    <span class="keyword">let</span> propertyB: <span class="type">String</span>
+}
+<span class="keyword">extension</span> <span class="type">Bar</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">Bar</span>, rhs: <span class="type">Bar</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="property">propertyB</span> == rhs.<span class="property">propertyB</span>
+    }
+}
+<span class="keyword">var</span> equatableArray: [<span class="type">AnyEquatable</span>] = []
+<span class="keyword">let</span> equatable1 = <span class="type">AnyEquatable</span>(<span class="type">Foo</span>(propertyA: <span class="string">"foo"</span>))
+equatableArray.<span class="call">append</span>(equatable1)
+<span class="keyword">let</span> equatable2 = <span class="type">AnyEquatable</span>(<span class="type">Foo</span>(propertyA: <span class="string">"foo"</span>))
+equatableArray.<span class="call">append</span>(equatable2)
+<span class="keyword">let</span> equatable3 = <span class="type">AnyEquatable</span>(<span class="type">Bar</span>(propertyB: <span class="string">"bar"</span>))
+equatableArray.<span class="call">append</span>(equatable3)
+<span class="call">print</span>(equatableArray[<span class="number">0</span>] == equatableArray[<span class="number">1</span>]) <span class="comment">// true</span>
+print(equatableArray[<span class="number">1</span>] == equatableArray[<span class="number">2</span>]) <span class="comment">// false</span>
+</code></pre><p>There is another common problem where <em>Type Erasure</em> comes to the rescue:</p><blockquote><p>Think about a delegate protocol where you want to use a type which has <em>associated type and/or Self requirements</em>. Again the solution is a type erased wrapper. The only downside is that the delegate has to cast the <strong>Any</strong> value inside the type erased wrapper back to its original type.</p></blockquote><p>Okay, let’s head over to other type erased wrappers.</p><h2>More Type erased wrappers 🌟</h2><p>In this section I’ll give you a short overview of some other type erased wrappers you can use to solve the aforementioned problems.</p><h3>AnyHashable</h3><p>It’s part of the <strong>Swift Standard Library</strong>.</p><p><strong>Usage examples:</strong> Store <strong>Hashable</strong> objects in an array, require <em>Hashable</em> conformance in another protocol</p><h3>AnyView</h3><p>The <strong>SwiftUI</strong> framework provides <em>AnyView</em> which erases the type information of views.</p><p><strong>Usage examples:</strong> Store objects conforming to the <strong>*View*</strong> protocol in an array, require conformance to the <em>View</em> protocol in another protocol</p><h3>AnyIdentifiable</h3><p>The <strong>Identifiable</strong> protocol is part of <strong>SwiftUI</strong> as well and needs to be implemented by the items used in a <em>List</em> view or in a <em>ForEach</em>, so they can be uniquely identified by the framework.</p><p>A type erased wrapper <em>AnyIdentifiable</em> is easily implemented with the use of the existing type erased wrapper <em>AnyHashable</em>.</p><pre><code><span class="keyword">struct</span> AnyIdentifiable: <span class="type">Identifiable</span> {
+    <span class="keyword">let</span> id: <span class="type">AnyHashable</span>
+    
+    <span class="keyword">init</span>&lt;<span class="type">T</span>: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> identifiable: <span class="type">T</span>) {
+        <span class="keyword">self</span>.<span class="property">id</span> = identifiable.<span class="property">id</span>
+    }
+}
+</code></pre><h3>AnyComparable</h3><p>Similar to the <em>AnyEquatable</em> wrapper is the implementation of the following type erased wrapper for <em>Comparable</em> objects.</p><pre><code><span class="keyword">struct</span> AnyComparable {
+    <span class="keyword">private let</span> isEqualTo: (<span class="type">AnyComparable</span>) -&gt; <span class="type">Bool</span>
+    <span class="keyword">private let</span> compareTo: (<span class="type">AnyComparable</span>) -&gt; <span class="type">Bool</span>
+    <span class="keyword">let</span> comparable: <span class="type">Any</span>
+    
+    <span class="keyword">init</span>&lt;<span class="type">T</span>: <span class="type">Comparable</span>&gt;(<span class="keyword">_</span> comparable: <span class="type">T</span>) {
+        <span class="keyword">self</span>.<span class="property">comparable</span> = comparable
+        <span class="keyword">self</span>.<span class="property">isEqualTo</span> = { anotherEquatable <span class="keyword">in
+            guard let</span> anotherEquatable = anotherEquatable.<span class="property">comparable</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return false</span>
+            }
+            
+            <span class="keyword">return</span> anotherEquatable == comparable
+        }
+        <span class="keyword">self</span>.<span class="property">compareTo</span> = { anotherComparable <span class="keyword">in
+            guard let</span> anotherComparable = anotherComparable.<span class="property">comparable</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return false</span>
+            }
+            
+            <span class="keyword">return</span> comparable &lt; anotherComparable
+        }
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyComparable</span>: <span class="type">Comparable</span> {
+    <span class="keyword">static func</span> &lt; (lhs: <span class="type">AnyComparable</span>, rhs: <span class="type">AnyComparable</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="call">compareTo</span>(rhs)
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyComparable</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">AnyComparable</span>, rhs: <span class="type">AnyComparable</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="call">isEqualTo</span>(rhs)
+    }
+}
+</code></pre><p>The following code shows a basic usage example of the type erased wrapper:</p><pre><code><span class="keyword">let</span> comparables = [<span class="type">AnyComparable</span>(<span class="number">5</span>), <span class="type">AnyComparable</span>(<span class="number">10</span>)]
+<span class="call">print</span>(comparables[<span class="number">0</span>] &lt; comparables[<span class="number">1</span>]) <span class="comment">// true</span>
+print(comparables[<span class="number">0</span>] &gt; comparables[<span class="number">0</span>]) <span class="comment">// false</span>
+print(comparables[<span class="number">0</span>] == comparables[<span class="number">0</span>]) <span class="comment">// true</span>
+</code></pre><h3>AnyNumber</h3><p>Last but not least I proudly present a type erased wrapper for storing objects conforming to the <em>Numeric</em> protocol in the same array (<em>Int</em>, <em>Float</em> and <em>Double</em> numbers).</p><blockquote><p>Keep in mind that you can only use <strong>add</strong>, <strong>substract</strong> or <strong>multiply on AnyNumber</strong>s with the <strong>same underlying type</strong> (Int, Float or Double).</p></blockquote><pre><code><span class="keyword">struct</span> AnyNumber: <span class="type">Numeric</span> {
+    <span class="keyword">private let</span> add: (<span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span>
+    <span class="keyword">private let</span> substract: (<span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span>
+    <span class="keyword">private let</span> multiply: (<span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span>
+    <span class="keyword">private let</span> isEqualTo: (<span class="type">AnyNumber</span>) -&gt; <span class="type">Bool</span>
+    
+    <span class="keyword">var</span> magnitude: <span class="type">Double</span> {
+        <span class="keyword">let</span> stringValue = <span class="type">String</span>(describing: value)
+        <span class="keyword">return</span> <span class="type">Double</span>(stringValue)?.<span class="property">magnitude</span> ?? -<span class="number">1</span>
+    }
+    
+    <span class="keyword">let</span> value: <span class="type">Any</span>
+    
+    <span class="keyword">init</span>?&lt;<span class="type">T</span>&gt;(exactly source: <span class="type">T</span>) <span class="keyword">where</span> <span class="type">T</span> : <span class="type">BinaryInteger</span> {
+        <span class="keyword">self</span>.<span class="keyword">init</span>(source)
+    }
+    
+    <span class="keyword">init</span>&lt;<span class="type">T</span>: <span class="type">Numeric</span>&gt;(<span class="keyword">_</span> number: <span class="type">T</span>) {
+        <span class="keyword">self</span>.<span class="property">value</span> = number
+        <span class="keyword">self</span>.<span class="property">add</span> = { anotherNumber <span class="keyword">in
+            guard let</span> anotherNumber = anotherNumber.<span class="property">value</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return</span> <span class="type">AnyNumber</span>(number)
+            }
+            
+            <span class="keyword">let</span> numbers = number + anotherNumber
+            <span class="keyword">return</span> <span class="type">AnyNumber</span>(numbers)
+        }
+        <span class="keyword">self</span>.<span class="property">substract</span> = { anotherNumber <span class="keyword">in
+            guard let</span> anotherNumber = anotherNumber.<span class="property">value</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return</span> <span class="type">AnyNumber</span>(number)
+            }
+            
+            <span class="keyword">let</span> numbers = number - anotherNumber
+            <span class="keyword">return</span> <span class="type">AnyNumber</span>(numbers)
+        }
+        <span class="keyword">self</span>.<span class="property">multiply</span> = { anotherNumber <span class="keyword">in
+            guard let</span> anotherNumber = anotherNumber.<span class="property">value</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return</span> <span class="type">AnyNumber</span>(number)
+            }
+            
+            <span class="keyword">let</span> numbers = number * anotherNumber
+            <span class="keyword">return</span> <span class="type">AnyNumber</span>(numbers)
+        }
+        <span class="keyword">self</span>.<span class="property">isEqualTo</span> = { anotherNumber <span class="keyword">in
+            guard let</span> anotherNumber = anotherNumber.<span class="property">value</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return false</span>
+            }
+            
+            <span class="keyword">return</span> anotherNumber == number
+        }
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyNumber</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="call">isEqualTo</span>(rhs)
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyNumber</span>: <span class="type">AdditiveArithmetic</span> {
+    <span class="keyword">static func</span> -= (lhs: <span class="keyword">inout</span> <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) {
+        lhs = lhs - rhs
+    }
+    
+    <span class="keyword">static func</span> - (lhs: <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span> {
+        <span class="keyword">return</span> lhs.<span class="call">substract</span>(rhs)
+    }
+    
+    <span class="keyword">static func</span> += (lhs: <span class="keyword">inout</span> <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) {
+        lhs = lhs + rhs
+    }
+    
+    <span class="keyword">static func</span> + (lhs: <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span> {
+        <span class="keyword">return</span> lhs.<span class="call">add</span>(rhs)
+    }
+    
+    <span class="keyword">static func</span> * (lhs: <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span> {
+        lhs.<span class="call">multiply</span>(rhs)
+    }
+    
+    <span class="keyword">static func</span> *= (lhs: <span class="keyword">inout</span> <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) {
+        lhs = lhs * rhs
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyNumber</span>: <span class="type">ExpressibleByIntegerLiteral</span> {
+    <span class="keyword">init</span>(integerLiteral value: <span class="type">Int</span>) {
+        <span class="keyword">self</span>.<span class="keyword">init</span>(value)
+    }
+}
+</code></pre><p>The following code shows a simple usage example:</p><pre><code><span class="keyword">let</span> floatNumber: <span class="type">Float</span> = <span class="number">5.5323498539485</span>
+<span class="keyword">let</span> doubleNumber = <span class="number">6.549123234234234</span>
+<span class="keyword">let</span> intNumber = <span class="number">3</span>
+<span class="keyword">let</span> numbers = [<span class="type">AnyNumber</span>(floatNumber),
+               <span class="type">AnyNumber</span>(doubleNumber),
+               <span class="type">AnyNumber</span>(intNumber)]
+<span class="call">print</span>(<span class="call">type</span>(of: numbers[<span class="number">0</span>].value)) <span class="comment">// Float</span>
+<span class="call">print</span>(<span class="call">type</span>(of: numbers[<span class="number">1</span>].value)) <span class="comment">// Double</span>
+<span class="call">print</span>(<span class="call">type</span>(of: numbers[<span class="number">2</span>].value)) <span class="comment">// Int</span>
+</code></pre><p>You did it 🎉. Head over to your todo list:</p><blockquote><p>✅ Understand and use <em>Type Erasure</em></p></blockquote><p>I hope that I could unlock the secret <strong>Type Erasure</strong> for you. If <strong>yes</strong> then you are ready to use it in the near future 🚀🚀🚀. Otherwise don’t hesitate to <strong>ask questions</strong> ✌️.</p><p><strong>Thanks again for reading</strong> one of my articles. <strong>Check out my other articles</strong> if you like.</p><p>Stay tuned 📺.</p><p><a href="https://github.com/crelies"><strong>crelies - Overview</strong></a></p>]]></content:encoded></item><item><guid isPermaLink="true">https://christianelies.de/posts/advanced-lists</guid><title>Meet &amp; Greet — Advanced Lists in SwiftUI</title><description>Implement a dynamic list with empty, error, and loading state</description><link>https://christianelies.de/posts/advanced-lists</link><pubDate>Sun, 14 Jul 2019 18:00:00 +0200</pubDate><content:encoded><![CDATA[<h1>Meet &amp; Greet — Advanced Lists in SwiftUI</h1><a href="https://christianelies.de/tags/lists"><span class="badge badge-pill badge-success fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">lists</span></a><a href="https://christianelies.de/tags/swiftui"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">swiftui</span></a><p class="text-danger">14. Jul 2019</p><img src="advanced-lists-header.png" alt="List image (Copyright © 2019 <strong>Christian Elies</strong>)"/><p><em>List image (Copyright © 2019 <strong>Christian Elies</strong>)</em></p><p><strong>Update 2019/08/14:</strong> Now available as a <a href="https://github.com/crelies/AdvancedList">Swift package</a> 🚀</p><h2>Motivation</h2><p>What do I mean by <em>advanced list</em>?</p><p>The app I’m currently working on has many dynamic lists which can represent different states, such as <code>empty</code>, <code>error</code>, <code>items</code> or <code>loading</code>.</p><p>I implemented a solution, on top of the data-driven framework <a href="https://github.com/Instagram/IGListKit">IGListKit</a>, to be able to create these type of lists in our <a href="https://getuikit.com/">UIKit</a> app.</p><p>Now, I wanted to implement something similar using <a href="https://developer.apple.com/xcode/swiftui/">SwiftUI</a>. Just a few lines of code, right?</p><h2>Implementation</h2><p>In this section, we will take a look at my implementation and the different components I created.</p><h3>ListState</h3><p>The <code>AdvancedList</code> should be able to represent different states. We can easily define the states with an <code>Enum</code>.</p><p>You will see below why I skipped adding an empty case.</p><pre><code><span class="keyword">enum</span> ListState {
+    <span class="keyword">case</span> error(<span class="keyword">_</span> error: <span class="type">Error</span>?)
+    <span class="keyword">case</span> items
+    <span class="keyword">case</span> loading
+}
+<span class="keyword">extension</span> <span class="type">ListState</span> {
+    <span class="keyword">var</span> error: <span class="type">Error</span>? {
+        <span class="keyword">switch self</span> {
+            <span class="keyword">case</span> .<span class="dotAccess">error</span>(<span class="keyword">let</span> error):
+                <span class="keyword">return</span> error
+            <span class="keyword">default</span>:
+                <span class="keyword">return nil</span>
+        }
+    }
+}
+</code></pre><h3>ListService</h3><p>The <code>AdvancedList</code> needs a component which stores and manages the <code>ListState</code> and the <code>items</code>.</p><p>With <code>Combine</code> and the data binding feature of SwiftUI, we connect <code>AdvancedList</code> and <code>ListService</code>.</p><p>You can change the list state and modify the items through the <code>ListService</code> and the <code>AdvancedList</code> gets updated automatically.</p><pre><code><span class="keyword">final class</span> ListService: <span class="type">BindableObject</span> {
+    <span class="keyword">private(set) var</span> items: [<span class="type">AnyListItem</span>] = [] {
+        <span class="keyword">didSet</span> {
+            didChange.<span class="call">send</span>()
+        }
+    }
+    
+    <span class="keyword">private(set) var</span> didChange = <span class="type">PassthroughSubject</span>&lt;<span class="type">Void</span>, <span class="type">Never</span>&gt;()
+    
+    <span class="keyword">var</span> listState: <span class="type">ListState</span> = .<span class="call">items</span> {
+        <span class="keyword">didSet</span> {
+            didChange.<span class="call">send</span>()
+        }
+    }
+    
+    <span class="keyword">func</span> appendItems&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> items: [<span class="type">Item</span>]) <span class="keyword">where</span> <span class="type">Item</span>: <span class="type">View</span> {
+        <span class="keyword">let</span> anyListItems = items.<span class="call">map</span> { <span class="type">AnyListItem</span>(item: $0) }
+        <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">append</span>(contentsOf: anyListItems)
+    }
+    
+    <span class="keyword">func</span> updateItems&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> items: [<span class="type">Item</span>]) <span class="keyword">where</span> <span class="type">Item</span>: <span class="type">View</span> {
+        <span class="keyword">let</span> anyListItems = items.<span class="call">map</span> { <span class="type">AnyListItem</span>(item: $0) }
+        <span class="keyword">for</span> anyListItem <span class="keyword">in</span> anyListItems {
+            <span class="keyword">guard let</span> itemIndex = <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">firstIndex</span>(where: { $0.<span class="property">id</span> == anyListItem.<span class="property">id</span> }) <span class="keyword">else</span> {
+                <span class="keyword">continue</span>
+            }
+            
+            <span class="keyword">self</span>.<span class="property">items</span>[itemIndex] = anyListItem
+        }
+    }
+    
+    <span class="keyword">func</span> removeItems&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> items: [<span class="type">Item</span>]) <span class="keyword">where</span> <span class="type">Item</span>: <span class="type">View</span> {
+        <span class="keyword">let</span> anyListItemsToRemove = items.<span class="call">map</span> { <span class="type">AnyListItem</span>(item: $0) }
+        <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">removeAll</span>(where: { item <span class="keyword">in
+             return</span> anyListItemsToRemove.<span class="call">contains</span> { item.<span class="property">id</span> == $0.<span class="property">id</span> }
+        })
+    }
+    
+    <span class="keyword">func</span> removeAllItems() {
+        items.<span class="call">removeAll</span>()
+    }
+}
+</code></pre><p>There are two special items in the implementation of <code>ListService</code>: <code>Item</code> and <code>AnyListItem</code>.</p><h3>Item</h3><p>We want to be able to show different items in the same list. Each item should be identifiable and should be representable as a SwiftUI view.</p><p>To achieve that, I constrained the <code>Item</code> to the <code>Identifiable</code> and the <code>View</code> protocol.</p><pre><code><span class="keyword">func</span> appendItems&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> items: [<span class="type">Item</span>]) <span class="keyword">where</span> <span class="type">Item</span>: <span class="type">View</span> {}
+</code></pre><p>But there is one problem.</p><p>We can’t store objects conforming to the <code>Identifiable</code> and to the <code>View</code> protocol in an array inside of the <code>ListService</code>, because the protocols have associated types and generic constraints. That’s why I have to use ‘type erasure’.</p><p>I implemented a box type called <code>AnyListItem</code> which erases the type information of the <code>body</code> property (required by <code>View</code>) using <code>AnyView</code> and of the <code>id</code> property (required by <code>Identifiable</code>) using <code>AnyHashable</code>.</p><pre><code><span class="keyword">struct</span> AnyListItem: <span class="type">Identifiable</span>, <span class="type">View</span> {
+    <span class="keyword">let</span> id: <span class="type">AnyHashable</span>
+    <span class="keyword">let</span> body: <span class="type">AnyView</span>
+    
+    <span class="keyword">init</span>&lt;<span class="type">Item</span>: <span class="type">Identifiable</span>&gt;(item: <span class="type">Item</span>) <span class="keyword">where</span> <span class="type">Item</span>: <span class="type">View</span> {
+        id = item.<span class="property">id</span>
+        body = <span class="type">AnyView</span>(item)
+    }
+}
+</code></pre><p><code>ListService</code> uses <code>AnyListItem</code> internally to erase the type information of each <code>item</code> added to the list.</p><h3>AdvancedList</h3><p>Finally, let’s take a look at the implementation of the SwiftUI view <code>AdvancedList</code>.</p><p>The view renders itself dependent on the current list state and the current items. To do so, the <code>AdvancedList</code> view needs an instance of <code>ListService</code> which manages the list state and the items.</p><p>With the use of the <code>ObjectBinding</code> property wrapper on the <code>listService</code> variable, we tell the <code>AdvancedList</code> view to bind to the changes.</p><p>Additionally, a user of the <code>AdvancedList</code> view should be able to specify a view for the <code>empty</code>, <code>loading</code> and <code>error</code> state of the list.</p><p>I used the <code>ViewBuilder</code> property wrapper on the parameters in the initializer to achieve that.</p><pre><code><span class="keyword">struct</span> AdvancedList&lt;EmptyStateView: <span class="type">View</span>, ErrorStateView: <span class="type">View</span>, LoadingStateView: <span class="type">View</span>&gt; : <span class="type">View</span> {
+    <span class="keyword">@ObjectBinding private var</span> listService: <span class="type">ListService</span>
+    <span class="keyword">private let</span> emptyStateView: () -&gt; <span class="type">EmptyStateView</span>
+    <span class="keyword">private let</span> errorStateView: (<span class="type">Error</span>?) -&gt; <span class="type">ErrorStateView</span>
+    <span class="keyword">private let</span> loadingStateView: () -&gt; <span class="type">LoadingStateView</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="keyword">return</span> <span class="type">Group</span> {
+            <span class="keyword">if</span> listService.<span class="property">listState</span>.<span class="property">error</span> != <span class="keyword">nil</span> {
+                <span class="call">errorStateView</span>(listService.<span class="property">listState</span>.<span class="property">error</span>)
+            } <span class="keyword">else if</span> listService.<span class="property">listState</span> == .<span class="dotAccess">items</span> {
+                <span class="keyword">if</span> !listService.<span class="property">items</span>.<span class="property">isEmpty</span> {
+                    <span class="type">List</span>(listService.<span class="property">items</span>.<span class="call">identified</span>(by: \.<span class="property">id</span>)) { item <span class="keyword">in</span>
+                        item
+                    }
+                } <span class="keyword">else</span> {
+                    <span class="call">emptyStateView</span>()
+                }
+            } <span class="keyword">else if</span> listService.<span class="property">listState</span> == .<span class="dotAccess">loading</span> {
+                <span class="call">loadingStateView</span>()
+            } <span class="keyword">else</span> {
+                <span class="type">EmptyView</span>()
+            }
+        }
+    }
+    
+    <span class="keyword">init</span>(listService: <span class="type">ListService</span>, <span class="keyword">@ViewBuilder</span> emptyStateView: <span class="keyword">@escaping</span> () -&gt; <span class="type">EmptyStateView</span>, <span class="keyword">@ViewBuilder</span> errorStateView: <span class="keyword">@escaping</span> (<span class="type">Error</span>?) -&gt; <span class="type">ErrorStateView</span>, <span class="keyword">@ViewBuilder</span> loadingStateView: <span class="keyword">@escaping</span> () -&gt; <span class="type">LoadingStateView</span>) {
+        <span class="keyword">self</span>.<span class="property">listService</span> = listService
+        <span class="keyword">self</span>.<span class="property">emptyStateView</span> = emptyStateView
+        <span class="keyword">self</span>.<span class="property">errorStateView</span> = errorStateView
+        <span class="keyword">self</span>.<span class="property">loadingStateView</span> = loadingStateView
+    }
+}
+</code></pre><p>As I mentioned above, we don’t need an empty case on the <code>ListState</code> enum because we can use <code>isEmpty</code> on the <code>items</code>instead.</p><p>There is one more special thing in my implementation:</p><p>The <code>error</code> case of the <code>ListState</code> has an associated value of type <code>Error</code><em>.</em> That way I can pass the error to the error view which can display it if needed.</p><p>That’s it! Let’s see how we can use <code>AdvancedList</code> in the field.</p><h2>Example Usage</h2><p>In this section, you will see a simple usage example of the <code>AdvancedList</code> SwiftUI view.</p><p>Hint<strong>:</strong> You will find the complete implementation in the GitHub repository linked below.</p><p>First, we have to create the items we want to show on the list.</p><h3>Example items</h3><p>I created a <code>ContactListItem</code> representing a contact (name, address, etc.).</p><p>To add instances of this item to the list, it has to conform to the protocols <code>Identifiable</code> and <code>View</code>.</p><p>I did something special here; I want to be able to render this item differently, dependent on its type property.</p><p>Take a look at the usage of <code>viewRepresentationType</code> in the <code>body</code> property.</p><pre><code><span class="keyword">struct</span> ContactListItem: <span class="type">Identifiable</span> {
+    <span class="keyword">@State private var</span> collapsed: <span class="type">Bool</span> = <span class="keyword">true
+    
+    let</span> id: <span class="type">String</span>
+    <span class="keyword">let</span> firstName: <span class="type">String</span>
+    <span class="keyword">let</span> lastName: <span class="type">String</span>
+    <span class="keyword">let</span> streetAddress: <span class="type">String</span>
+    <span class="keyword">let</span> zip: <span class="type">String</span>
+    <span class="keyword">let</span> city: <span class="type">String</span>
+    
+    <span class="keyword">var</span> viewRepresentationType: <span class="type">ContactListItemViewRepresentationType</span> = .<span class="dotAccess">short</span>
+}
+<span class="keyword">extension</span> <span class="type">ContactListItem</span>: <span class="type">View</span> {
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Group</span> {
+            <span class="keyword">if</span> viewRepresentationType == .<span class="dotAccess">short</span> {
+                <span class="type">ContactListItemView</span>(firstName: firstName,
+                                    lastName: lastName,
+                                    hasMoreInformation: <span class="keyword">false</span>)
+            } <span class="keyword">else if</span> viewRepresentationType == .<span class="dotAccess">detail</span> {
+                <span class="type">NavigationLink</span>(destination: <span class="type">ContactDetailView</span>(listItem: <span class="keyword">self</span>), label: {
+                    <span class="type">ContactListItemView</span>(firstName: firstName,
+                                        lastName: lastName,
+                                        hasMoreInformation: <span class="keyword">true</span>)
+                })
+            } <span class="keyword">else if</span> viewRepresentationType == .<span class="dotAccess">collapsable</span> {
+                <span class="type">VStack</span> {
+                    <span class="keyword">if</span> collapsed {
+                        <span class="type">ContactListItemView</span>(firstName: firstName,
+                                            lastName: lastName,
+                                            hasMoreInformation: <span class="keyword">false</span>)
+                    } <span class="keyword">else</span> {
+                        <span class="type">ContactDetailView</span>(listItem: <span class="keyword">self</span>)
+                    }
+                    
+                    <span class="type">Button</span>(action: {
+                        <span class="keyword">self</span>.<span class="property">collapsed</span>.<span class="call">toggle</span>()
+                    }) {
+                        <span class="type">Text</span>(<span class="string">"</span>\(collapsed ? <span class="string">"show"</span> : <span class="string">"hide"</span>) <span class="string">details"</span>)
+                    }.<span class="call">foregroundColor</span>(.<span class="dotAccess">blue</span>)
+                }
+            }
+        }
+    }
+}
+</code></pre><img src="advanced-lists-example.gif" alt="Animated image showing an AdvancedList with ContactItems on iPhone XR"/><p><em>Animated image showing an AdvancedList with ContactItems on iPhone XR</em></p><p>Additionally, I implemented a second item which represents a simple ad.</p><p>I did the same as with <code>ContactListItem</code>. The <code>AdListItem</code> has a type which controls the view definition.</p><pre><code><span class="keyword">struct</span> AdListItem: <span class="type">Identifiable</span> {
+    <span class="keyword">@State private var</span> isImageCollapsed: <span class="type">Bool</span> = <span class="keyword">true
+    
+    let</span> id: <span class="type">String</span>
+    <span class="keyword">let</span> text: <span class="type">String</span>
+    <span class="keyword">var</span> viewRepresentationType: <span class="type">AdListItemViewRepresentationType</span> = .<span class="dotAccess">short</span>
+}
+<span class="keyword">extension</span> <span class="type">AdListItem</span>: <span class="type">View</span> {
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Group</span> {
+            <span class="keyword">if</span> viewRepresentationType == .<span class="dotAccess">short</span> {
+                <span class="type">NavigationLink</span>(destination: <span class="type">AdDetailView</span>(text: text), label: {
+                    <span class="type">Text</span>(text)
+                        .<span class="call">lineLimit</span>(<span class="number">1</span>)
+                    <span class="type">Text</span>(<span class="string">"ℹ️"</span>)
+                })
+            } <span class="keyword">else if</span> viewRepresentationType == .<span class="dotAccess">long</span> {
+                <span class="type">Text</span>(text)
+                    .<span class="call">lineLimit</span>(<span class="keyword">nil</span>)
+            } <span class="keyword">else if</span> viewRepresentationType == .<span class="dotAccess">image</span> {
+                <span class="type">VStack</span> {
+                    <span class="keyword">if</span> !isImageCollapsed {
+                        <span class="type">Image</span>(<span class="string">"restaurant"</span>)
+                            .<span class="call">resizable</span>()
+                            .<span class="call">aspectRatio</span>(contentMode: .<span class="dotAccess">fit</span>)
+                            .<span class="call">frame</span>(height: <span class="number">200</span>)
+                    }
+                    
+                    <span class="type">Button</span>(action: {
+                        <span class="keyword">self</span>.<span class="property">isImageCollapsed</span>.<span class="call">toggle</span>()
+                    }) {
+                        <span class="type">Text</span>(<span class="string">"</span>\(isImageCollapsed ? <span class="string">"show"</span> : <span class="string">"hide"</span>) <span class="string">image"</span>)
+                    }.<span class="call">foregroundColor</span>(.<span class="dotAccess">blue</span>)
+                }
+            }
+        }
+    }
+}
+</code></pre><img src="advanced-lists-second-example.gif" alt="Animated image showing an AdvancedList with AdItems on iPhone XR"/><p><em>Animated image showing an AdvancedList with AdItems on iPhone XR</em></p><h3>Example content view</h3><p>Finally, we take a look at how to use the <code>AdvancedList</code> inside a simple content view.</p><p>You might be wondering what the <code>CustomListStateSegmentedControlView</code> is<strong>.</strong> It’s a helper view to easily change the list state and add random items to the list.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@ObjectBinding private var</span> listService: <span class="type">ListService</span> = <span class="type">ListService</span>()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="keyword">return</span> <span class="type">GeometryReader</span> { geometry <span class="keyword">in</span>
+                <span class="type">VStack</span> {
+                    <span class="type">CustomListStateSegmentedControlView</span>(listService: <span class="keyword">self</span>.<span class="property">listService</span>)
+                    
+                    <span class="type">AdvancedList</span>(listService: <span class="keyword">self</span>.<span class="property">listService</span>, emptyStateView: {
+                        <span class="type">Text</span>(<span class="string">"No data"</span>)
+                    }, errorStateView: { error <span class="keyword">in</span>
+                        <span class="type">Text</span>(<span class="string">"</span>\(error?.<span class="property">localizedDescription</span> ?? <span class="string">"Error"</span>)<span class="string">"</span>).<span class="call">lineLimit</span>(<span class="keyword">nil</span>)
+                    }, loadingStateView: {
+                        <span class="type">Text</span>(<span class="string">"Loading ..."</span>)
+                    })
+                    .<span class="call">frame</span>(width: geometry.<span class="property">size</span>.<span class="property">width</span>)
+                }
+                .<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of Items"</span>))
+            }
+        }
+    }
+}
+</code></pre><img src="advanced-lists-final.gif" alt="Animated image showing an AdvancedList with different items on iPhone XR"/><p><em>Animated image showing an AdvancedList with different items on iPhone XR</em></p><p>You’ve reached the end! Thank you very much for reading this article. I hope you liked my <code>AdvancedList</code> <code>view</code> and, of course, SwiftUI, as much as I do.</p><h2>Resources</h2><p>Here’s the code for this article:</p><p><a href="https://github.com/crelies/AdvancedList-SwiftUI"><strong>crelies/AdvancedList-SwiftUI</strong></a></p>]]></content:encoded></item><item><guid isPermaLink="true">https://christianelies.de/posts/swiftui-basics</guid><title>Learn &amp; Master ⚔️ SwiftUI basic components in 10 minutes</title><description>How to implement basic UI components in SwiftUI</description><link>https://christianelies.de/posts/swiftui-basics</link><pubDate>Tue, 2 Jul 2019 18:00:00 +0200</pubDate><content:encoded><![CDATA[<h1>Learn &amp; Master ⚔️ SwiftUI basic components in 10 minutes</h1><a href="https://christianelies.de/tags/swiftui"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">swiftui</span></a><a href="https://christianelies.de/tags/uikit"><span class="badge badge-pill badge-danger fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">uikit</span></a><p class="text-danger">2. Jul 2019</p><img src="swiftui-basics-header.png" alt="<strong>SwiftUI</strong> icon"/><p><strong>*SwiftUI</strong> icon (Copyright © 2019 <strong>Apple Inc.</strong>)*</p><p><strong>Updated on 07/06/2019:</strong> <em>Xcode 11 beta 3</em></p><p><strong>Updated on 07/07/2019:</strong> <em>TextField and SecureField initializer changes</em></p><p><strong>Updated on 07/17/2019:</strong> <em>List, ForEach, ActionSheet, Modal, DatePicker</em> and <em>Alert changes (**</em>Xcode 11 beta 4**<em>)</em></p><p><strong>Updated on 7/29/2019:</strong> <em>TabView</em> (previously named <em>TabbedView</em>): <em>tabItem modifier</em> supports images, <em>Alert:</em> renamed<em>onTrigger</em> to <em>action, Slider:</em> a range parameter instead of lower and upper bound parameters, <em>SegmentedControl</em> is now a picker with a special style (<strong>Xcode 11 beta 5</strong>)</p><p><strong>Updated on 8/31/2019:</strong> No changes required for <strong>Xcode 11 beta 6 + 7</strong></p><p><strong>Updated on 9/20/2019:</strong> No changes required for <strong>Xcode 11 GM Seed 1 + 2</strong></p><p><strong>Updated on 9/23/2019:</strong> No changes required for <strong>Xcode 11</strong></p><p>In the following I will take a look at the <strong>SwiftUI</strong> pendants of some <em>UIKit</em> components you already know. Many components can be implemented in just <strong>a few lines of code</strong>. The result of each implementation is shown in an (animated) image.</p><h2>Navigation</h2><p>In this section you will meet the basic navigation components of <strong>SwiftUI</strong>.</p><h3>UINavigationController pendant</h3><p>To implement the <em>UINavigationController</em> pendant in <strong>SwiftUI</strong> you use the <em>NavigationView</em> and add n<em>avigationBar</em>modifiers to a subview.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">Text</span>(<span class="string">"Hello world!"</span>)
+                .<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"Navigation bar title"</span>))
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-navigationbar.png" alt="Screenshot of result on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>NavigationBarItems</h3><p>If you want to add navigation bar items use the <em>navigationBarItems</em> modifiers on a subview.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private var</span> uuids: [<span class="type">String</span>] = {
+        <span class="keyword">let</span> ids: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            return</span> <span class="type">UUID</span>().<span class="property">uuidString</span>
+        }
+        <span class="keyword">return</span> ids
+    }()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(uuids, id: \.<span class="keyword">self</span>) { uuid <span class="keyword">in</span>
+                <span class="type">NavigationLink</span>(destination: <span class="type">Text</span>(uuid).<span class="call">padding</span>(.<span class="dotAccess">horizontal</span>)) {
+                    <span class="type">Text</span>(uuid)
+                }
+            }.<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of UUIDs"</span>))
+            .<span class="call">navigationBarItems</span>(trailing: <span class="type">EditButton</span>())
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-navigationbar-items.png" alt="Screenshot of result on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>UITabBarController pendant</h3><p>To implement a tab bar view use the <em>TabbedView</em> with a binding for the tab selection. The type of the binding can be any type conforming to the <em>Hashable</em> protocol. That’s amazing because you can use a simple enum (which is <em>Hashable</em> by default)!!</p><p><strong>SwiftUI</strong> needs to know which view to load initially. This works via the selection binding. Additionally you have to define the selection value of each subview. Due to the lack of documentation it was hard to find out how to do that ;)</p><blockquote><p>Thanks to a <em>StackOverflow post</em> I found the solution: You need to add a <em>tag</em> modifier to each subview and pass the selection value to it.</p></blockquote><p>To define a label or <strong>an image</strong> for each tab use the <em>tabItem</em> modifiers on the subviews.</p><pre><code><span class="keyword">enum</span> TabIdentifier {
+    <span class="keyword">case</span> list
+    <span class="keyword">case</span> another
+}
+<span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private var</span> uuids: [<span class="type">String</span>] = {
+        <span class="keyword">let</span> ids: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            return</span> <span class="type">UUID</span>().<span class="property">uuidString</span>
+        }
+        <span class="keyword">return</span> ids
+    }()
+    
+    <span class="keyword">@State private var</span> selectedTab: <span class="type">TabIdentifier</span> = .<span class="dotAccess">list</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">TabView</span>(selection: $selectedTab) {
+            <span class="type">NavigationView</span> {
+                <span class="type">List</span>(uuids, id: \.<span class="keyword">self</span>) { uuid <span class="keyword">in</span>
+                    <span class="type">Text</span>(uuid)
+                }.<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of UUIDs"</span>))
+            }.<span class="call">tabItem</span> {
+                <span class="type">Image</span>(systemName: <span class="string">"list.bullet"</span>)
+                <span class="type">Text</span>(<span class="string">"List"</span>)
+            }
+            .<span class="call">tag</span>(<span class="type">TabIdentifier</span>.<span class="property">list</span>)
+            
+            <span class="type">Text</span>(<span class="string">"Hello world!"</span>)
+                .<span class="call">tabItem</span> {
+                    <span class="type">Text</span>(<span class="string">"Another view"</span>)
+                }
+                .<span class="call">tag</span>(<span class="type">TabIdentifier</span>.<span class="property">another</span>)
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-tabbar.gif" alt="Result on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>Master-Detail</h3><p>Create a <em>NavigationView</em> with a <em>NavigationLink</em> as a subview. Finally declare the destination of the <em>NavigationLink</em>.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private var</span> uuids: [<span class="type">String</span>] = {
+        <span class="keyword">let</span> ids: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            return</span> <span class="type">UUID</span>().<span class="property">uuidString</span>
+        }
+        <span class="keyword">return</span> ids
+    }()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(uuids, id: \.<span class="keyword">self</span>) { uuid <span class="keyword">in</span>
+                <span class="type">NavigationLink</span>(destination: <span class="type">Text</span>(uuid).<span class="call">padding</span>(.<span class="dotAccess">horizontal</span>)) {
+                    <span class="type">Text</span>(uuid)
+                }
+            }.<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of UUIDs"</span>))
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-master-detail.gif" alt="Result on iPhone XR"/><p><em>Result on iPhone XR</em></p><h2>Layout</h2><p>This section will take a look at some of the layout components of <strong>SwiftUI</strong>.</p><h3>List of Items</h3><p>To show a list of items use the <em>List</em> view. Pass an array of objects conforming to the I<em>dentifiable</em> protocol to the initializer. Finally add a subview in the <em>content</em> block.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private var</span> uuids: [<span class="type">String</span>] = {
+        <span class="keyword">let</span> ids: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            return</span> <span class="type">UUID</span>().<span class="property">uuidString</span>
+        }
+        <span class="keyword">return</span> ids
+    }()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(uuids, id: \.<span class="keyword">self</span>) { uuid <span class="keyword">in</span>
+                <span class="type">Text</span>(uuid)
+            }.<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of UUIDs"</span>))
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-list-of-items.png" alt="Screenshot of result on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>Form</h3><p>To render multiple input components as a simple but nice form use the <em>Form</em> view. Separate input components with the <em>Section</em> view (the form will look like a static table view :-) ).</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> firstName: <span class="type">String</span> = <span class="string">""</span>
+    <span class="keyword">@State private var</span> lastName: <span class="type">String</span> = <span class="string">""</span>
+    <span class="keyword">@State private var</span> street: <span class="type">String</span> = <span class="string">""</span>
+    <span class="keyword">@State private var</span> houseNumber: <span class="type">String</span> = <span class="string">""</span>
+    <span class="keyword">@State private var</span> zip: <span class="type">String</span> = <span class="string">""</span>
+    <span class="keyword">@State private var</span> city: <span class="type">String</span> = <span class="string">""</span>
+    <span class="keyword">@State private var</span> termsAccepted: <span class="type">Bool</span> = <span class="keyword">false
+    @State private var</span> privacyAccepted: <span class="type">Bool</span> = <span class="keyword">false
+    
+    var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Form</span> {
+            <span class="type">Section</span> {
+                <span class="type">Text</span>(<span class="string">"First name"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                <span class="type">TextField</span>(<span class="string">"First name"</span>, text: $firstName)
+                <span class="type">Text</span>(<span class="string">"Last name"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                <span class="type">TextField</span>(<span class="string">"Last name"</span>, text: $lastName)
+            }
+            
+            <span class="type">Section</span> {
+                <span class="type">Text</span>(<span class="string">"Street"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                <span class="type">TextField</span>(<span class="string">"Street"</span>, text: $street)
+                <span class="type">Text</span>(<span class="string">"House number"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                <span class="type">TextField</span>(<span class="string">"House number"</span>, text: $houseNumber)
+                <span class="type">Text</span>(<span class="string">"Zip"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                <span class="type">TextField</span>(<span class="string">"Zip"</span>, text: $zip)
+                <span class="type">Text</span>(<span class="string">"City"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                <span class="type">TextField</span>(<span class="string">"City"</span>, text: $city)
+            }
+            
+            <span class="type">Section</span> {
+                <span class="type">Toggle</span>(isOn: $termsAccepted) {
+                    <span class="type">Text</span>(<span class="string">"Terms"</span>)
+                        .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                }
+                <span class="type">Toggle</span>(isOn: $privacyAccepted) {
+                    <span class="type">Text</span>(<span class="string">"Privacy"</span>)
+                        .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                }
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-form.png" alt="Screenshot of result on iPhone 8 Plus"/><p><em>Result on iPhone 8 Plus</em></p><h2>Presentation</h2><p>In the following you will learn how to implement UI components which are presented on top of other views.</p><h3>Alert</h3><p>To implement a simple alert you use a <em>presentation</em> modifier in combination with the <em>Alert</em> container. You need to pass a boolean variable defining the visibility of the alert and a block returning the <em>Alert</em> to the <em>presentation</em> modifier.</p><pre><code><span class="keyword">struct</span> ShowAlertButton : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> isAlertVisible: <span class="type">Bool</span> = <span class="keyword">false
+    
+    var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Button</span>(action: {
+            <span class="keyword">self</span>.<span class="property">isAlertVisible</span>.<span class="call">toggle</span>()
+        }) {
+            <span class="type">Text</span>(<span class="string">"Show alert"</span>)
+        }.<span class="call">alert</span>(isPresented: $isAlertVisible) {
+            <span class="type">Alert</span>(title: <span class="type">Text</span>(<span class="string">"Hey"</span>),
+                  message: <span class="type">Text</span>(<span class="string">"I'm a simple alert"</span>),
+                  dismissButton: .<span class="call">default</span>(<span class="type">Text</span>(<span class="string">"Dismiss"</span>), action: {
+                    <span class="keyword">self</span>.<span class="property">isAlertVisible</span>.<span class="call">toggle</span>()
+                  })
+            )
+        }
+    }
+}
+<span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private var</span> uuids: [<span class="type">String</span>] = {
+        <span class="keyword">let</span> ids: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            return</span> <span class="type">UUID</span>().<span class="property">uuidString</span>
+        }
+        <span class="keyword">return</span> ids
+    }()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(uuids, id: \.<span class="keyword">self</span>) { uuid <span class="keyword">in</span>
+                <span class="type">NavigationLink</span>(destination: <span class="type">Text</span>(uuid).<span class="call">padding</span>(.<span class="dotAccess">horizontal</span>)) {
+                    <span class="type">Text</span>(uuid)
+                }
+            }.<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of UUIDs"</span>))
+            .<span class="call">navigationBarItems</span>(trailing: <span class="type">ShowAlertButton</span>())
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-alert.gif" alt="Animated image showing SwiftUI alert on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>Modal</h3><p>Implement a modal view using a <em>PresentationLink</em>. Dismiss the modal by dragging it down. To manually dismiss the <em>Modal</em> in code you can use the <em>isPresented</em> environment.</p><blockquote><p><em>Hint:</em> In my example it’s not possible to open the same modal again after it was dismissed. On Reddit someone wrote: ‘I faced the same issue. Showed it at the labs and the Apple engineers noted that as a bug. So hopefully being fixed soon.’</p></blockquote><pre><code><span class="keyword">struct</span> ExampleModal : <span class="type">View</span> {
+    <span class="keyword">@Binding var</span> isPresented: <span class="type">Bool</span>
+    <span class="keyword">let</span> uuid: <span class="type">String</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">VStack</span> {
+            <span class="type">Text</span>(uuid)
+            <span class="type">Divider</span>()
+            <span class="type">Button</span>(action: {
+                <span class="keyword">self</span>.<span class="property">isPresented</span> = <span class="keyword">false</span>
+            }) {
+                <span class="type">Text</span>(<span class="string">"Dismiss modal"</span>)
+            }
+        }.<span class="call">padding</span>(.<span class="dotAccess">horizontal</span>)
+    }
+}
+<span class="keyword">struct</span> ListItem : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> isPresented = <span class="keyword">false
+    let</span> uuid: <span class="type">String</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Button</span>(action: {
+            <span class="keyword">self</span>.<span class="property">isPresented</span> = <span class="keyword">true</span>
+        }) {
+            <span class="type">Text</span>(uuid)
+        }.<span class="call">sheet</span>(isPresented: $isPresented, onDismiss: {
+            <span class="keyword">self</span>.<span class="property">isPresented</span> = <span class="keyword">false</span>
+        }) {
+            <span class="type">ExampleModal</span>(isPresented: <span class="keyword">self</span>.$isPresented,
+                         uuid: <span class="keyword">self</span>.<span class="property">uuid</span>)
+        }
+    }
+}
+<span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private var</span> uuids: [<span class="type">String</span>] = {
+        <span class="keyword">let</span> ids: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            return</span> <span class="type">UUID</span>().<span class="property">uuidString</span>
+        }
+        <span class="keyword">return</span> ids
+    }()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(uuids, id: \.<span class="keyword">self</span>) { uuid <span class="keyword">in</span>
+                <span class="type">ListItem</span>(uuid: uuid)
+            }.<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of UUIDs"</span>))
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-modal.gif" alt="Animated image showing SwiftUI modal on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>ActionSheet</h3><p>Implementing an <em>ActionSheet</em> is done via a <em>presentation</em> modifier added to another view, like a <em>Button</em>. Normally you want to hide the <em>ActionSheet</em> initially. To achieve this you have to pass <em>nil</em> to the <em>presentation</em> modifier. A simple solution would be to use a computed property for the <em>ActionSheet</em> which returns nil if a related <em>State variable</em> is false.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> isActionSheetVisible = <span class="keyword">false
+    private var</span> actionSheet: <span class="type">ActionSheet</span> {
+        <span class="keyword">let</span> button1 = <span class="type">ActionSheet</span>.<span class="type">Button</span>.<span class="call">default</span>(<span class="type">Text</span>(<span class="string">"Facebook"</span>)) {
+            <span class="keyword">self</span>.<span class="property">isActionSheetVisible</span> = <span class="keyword">false</span>
+        }
+        <span class="keyword">let</span> button2 = <span class="type">ActionSheet</span>.<span class="type">Button</span>.<span class="call">default</span>(<span class="type">Text</span>(<span class="string">"Instagram"</span>)) {
+            <span class="keyword">self</span>.<span class="property">isActionSheetVisible</span> = <span class="keyword">false</span>
+        }
+        <span class="keyword">let</span> button3 = <span class="type">ActionSheet</span>.<span class="type">Button</span>.<span class="call">default</span>(<span class="type">Text</span>(<span class="string">"Twitter"</span>)) {
+            <span class="keyword">self</span>.<span class="property">isActionSheetVisible</span> = <span class="keyword">false</span>
+        }
+        <span class="keyword">let</span> dismissButton = <span class="type">ActionSheet</span>.<span class="type">Button</span>.<span class="call">cancel</span> {
+            <span class="keyword">self</span>.<span class="property">isActionSheetVisible</span> = <span class="keyword">false</span>
+        }
+        <span class="keyword">let</span> buttons = [button1, button2, button3, dismissButton]
+        <span class="keyword">return</span> <span class="type">ActionSheet</span>(title: <span class="type">Text</span>(<span class="string">"Share"</span>),
+                           buttons: buttons)
+    }
+    
+    <span class="keyword">private var</span> uuids: [<span class="type">String</span>] = {
+        <span class="keyword">let</span> ids: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            return</span> <span class="type">UUID</span>().<span class="property">uuidString</span>
+        }
+        <span class="keyword">return</span> ids
+    }()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(uuids, id: \.<span class="keyword">self</span>) { uuid <span class="keyword">in</span>
+                <span class="type">Button</span>(action: {
+                    <span class="keyword">self</span>.<span class="property">isActionSheetVisible</span> = <span class="keyword">true</span>
+                }) {
+                    <span class="type">Text</span>(uuid)
+                }.<span class="call">actionSheet</span>(isPresented: <span class="keyword">self</span>.$isActionSheetVisible) {
+                    <span class="keyword">self</span>.<span class="property">actionSheet</span>
+                }
+            }.<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of UUIDs"</span>))
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-actionsheet.gif" alt="Animated image showing SwiftUI action sheet on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>Popover</h3><p>To attach a popover to a view you use the <em>popover</em> modifier<em>.</em> You have to pass a <em>boolean</em> <em>Binding</em> to the modifier to control the visibility of the <em>Popover</em>. In addition specify a <em>content</em> block returning the content view for the <em>Popover</em>.</p><blockquote><p>Keep in mind that a popover will be presented as a modal on smaller screen sizes (like the iPhone). Only on the iPad you get the expected popover style.</p></blockquote><pre><code><span class="keyword">struct</span> PopoverContentView : <span class="type">View</span> {
+    <span class="keyword">let</span> uuid: <span class="type">String</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Text</span>(uuid)
+            .<span class="call">frame</span>(width: <span class="number">200</span>,
+                   height: <span class="number">50</span>,
+                   alignment: .<span class="dotAccess">center</span>)
+            .<span class="call">padding</span>(.<span class="dotAccess">horizontal</span>)
+            .<span class="call">background</span>(<span class="type">Color</span>.<span class="property">yellow</span>)
+            .<span class="call">cornerRadius</span>(<span class="number">8</span>)
+    }
+}
+<span class="keyword">struct</span> ListItem : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> isPopoverVisible = <span class="keyword">false
+    
+    let</span> uuid: <span class="type">String</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Button</span>(action: {
+            <span class="keyword">self</span>.<span class="property">isPopoverVisible</span> = <span class="keyword">true</span>
+        }) {
+            <span class="type">Text</span>(uuid)
+        }.<span class="call">popover</span>(isPresented: $isPopoverVisible) {
+            <span class="type">PopoverContentView</span>(uuid: <span class="keyword">self</span>.<span class="property">uuid</span>)
+        }
+    }
+    
+    <span class="keyword">init</span>(uuid: <span class="type">String</span>) {
+        <span class="keyword">self</span>.<span class="property">uuid</span> = uuid
+    }
+}
+<span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private var</span> uuids: [<span class="type">String</span>] = {
+        <span class="keyword">let</span> ids: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            return</span> <span class="type">UUID</span>().<span class="property">uuidString</span>
+        }
+        <span class="keyword">return</span> ids
+    }()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(uuids, id: \.<span class="keyword">self</span>) { uuid <span class="keyword">in</span>
+                <span class="type">ListItem</span>(uuid: uuid)
+            }.<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"List of UUIDs"</span>))
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-popover-iphone.gif" alt="Animated image showing SwiftUI popover on iPhone XR"/><p><em>Popover on iPhone XR</em></p><p>On an <strong>iPhone</strong> you can dismiss the modal by dragging down.</p><img src="swiftui-basics-popover-ipad.gif" alt="Animated image showing SwiftUI popover on iPad Pro 9.7""/><p><em>Popover on iPad Pro 9.7"</em></p><p>On an <strong>iPad</strong> you tap outside the popover to dismiss it.</p><blockquote><p>Hint: In my implementation you cannot show the same popover again after dismissing it. It might be the same bug as with the Modal.</p></blockquote><h2>Views</h2><p>This section covers some basic views you know from <strong>UIKit</strong>.</p><h3>Image</h3><p>To show an image use the <em>Image</em> view.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Image</span>(<span class="string">"swiftui"</span>)
+    }
+}
+</code></pre><img src="swiftui-basics-image.png" alt="Screenshot of result on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>ScrollView</h3><p>Implement it via the <em>ScrollView</em> view.</p><blockquote><p>I did something special here: I made use of the <em>GeometryReader</em> to get the size of the root view (in this case the screen size). That way I was able to implement a scroll view containing rectangles having a full screen width.</p></blockquote><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private var</span> colors: [<span class="type">Color</span>] = {
+        <span class="keyword">let</span> colorArray: [<span class="type">Color</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">5</span>).<span class="call">map</span> { <span class="keyword">_ in
+            let</span> red = <span class="type">Double</span>.<span class="call">random</span>(in: <span class="number">0.0</span> ..&lt; <span class="number">1.0</span>)
+            <span class="keyword">let</span> green = <span class="type">Double</span>.<span class="call">random</span>(in: <span class="number">0.0</span> ..&lt; <span class="number">1.0</span>)
+            <span class="keyword">let</span> blue = <span class="type">Double</span>.<span class="call">random</span>(in: <span class="number">0.0</span> ..&lt; <span class="number">1.0</span>)
+            <span class="keyword">return</span> <span class="type">Color</span>(red: red,
+                         green: green,
+                         blue: blue)
+        }
+        <span class="keyword">return</span> colorArray
+    }()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">GeometryReader</span> { geometry <span class="keyword">in</span>
+            <span class="type">ScrollView</span>(.<span class="dotAccess">horizontal</span>) {
+                <span class="type">HStack</span>(spacing: <span class="number">0</span>) {
+                    <span class="type">ForEach</span>(<span class="keyword">self</span>.<span class="property">colors</span>, id: \.<span class="keyword">self</span>) { color <span class="keyword">in</span>
+                        <span class="type">Rectangle</span>()
+                            .<span class="call">frame</span>(width: geometry.<span class="property">size</span>.<span class="property">width</span>,
+                                   height: <span class="number">300</span>)
+                            .<span class="call">foregroundColor</span>(color)
+                    }
+                }.<span class="call">frame</span>(height: geometry.<span class="property">size</span>.<span class="property">height</span>)
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-scrollview.gif" alt="Animated image showing SwiftUI scroll view on iPhone XR"/><p><em>Result on iPhone XR</em></p><h2>User input controls</h2><p>This section takes a look at the user input controls of <strong>SwiftUI</strong>.</p><h3>Picker</h3><p>Pickers in <strong>SwiftUI</strong> are really powerful. Besides the data binding feature you can get <strong>a detail view for the selection for free</strong> if you put the picker inside a form which itself lives in a navigation view.</p><p>Take a closer look at the <em>ForEach</em> in the <em>content</em> block:</p><blockquote><p>To define the selection value of each subview add a tag modifier with the value to it.</p></blockquote><pre><code><span class="keyword">enum</span> Country: <span class="type">String</span>, <span class="type">CaseIterable</span> {
+    <span class="keyword">case</span> albania
+    <span class="keyword">case</span> belgium
+    <span class="keyword">case</span> chile
+    <span class="keyword">case</span> germany
+    <span class="keyword">case</span> hungary
+    <span class="keyword">case</span> iceland
+    <span class="keyword">case</span> mazedonia
+    <span class="keyword">case</span> portugal
+    <span class="keyword">case</span> switzerland
+}
+<span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> selectedCountry: <span class="type">Country</span> = .<span class="dotAccess">germany</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">Form</span> {
+                <span class="type">Picker</span>(selection: $selectedCountry,
+                       label: <span class="type">Text</span>(<span class="string">"Country"</span>),
+                       content: {
+                        <span class="type">ForEach</span>(<span class="type">Country</span>.<span class="property">allCases</span>, id: \.<span class="keyword">self</span>) { country <span class="keyword">in</span>
+                            <span class="type">Text</span>(country.<span class="property">rawValue</span>)
+                                .<span class="call">tag</span>(country)
+                        }
+                }).<span class="call">navigationBarTitle</span>(<span class="type">Text</span>(<span class="string">"Where are you from?"</span>))
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-picker.gif" alt="Animated image showing SwiftUI picker on iPhone Xs Max"/><p><em>Result on iPhone Xs Max</em></p><p>To get the familiar inline picker style add the modifier <em>.pickerStyle(.wheel)</em> to the picker.</p><h3>DatePicker</h3><p>With the <em>DatePicker</em> its the same. Just put it into a form and <strong>SwiftUI</strong> does the magic.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> date: <span class="type">Date</span> = <span class="type">Date</span>()
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Form</span> {
+            <span class="type">Text</span>(<span class="string">"</span>\(date)<span class="string">"</span>)
+            <span class="type">DatePicker</span>(selection: $date, displayedComponents: [.<span class="dotAccess">date</span>]) {
+                <span class="type">Text</span>(<span class="string">"Birthday"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-datepicker.gif" alt="Animated image showing SwiftUI date picker on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>Toggle / Switch</h3><p>To get a simple but beautiful toggle use the <em>Toggle</em> view with a data binding.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> toggleValue: <span class="type">Bool</span> = <span class="keyword">false
+    
+    var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Form</span> {
+            <span class="type">Toggle</span>(isOn: $toggleValue) {
+                <span class="type">Text</span>(<span class="string">"Terms"</span>)
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-toggle.png" alt="Screenshot of result on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>Slider</h3><p>To implement a slider use the <em>Slider</em> view and specify a range including a stride (i like that!). <strong>It’s really declarative!!</strong></p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private let</span> sliderRange: <span class="type">ClosedRange</span>&lt;<span class="type">Double</span>&gt; = <span class="number">0</span>...<span class="number">10</span>
+    <span class="keyword">private let</span> distance: <span class="type">Double</span> = <span class="number">1</span>
+    <span class="keyword">@State private var</span> sliderValue: <span class="type">Double</span> = <span class="number">5</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Form</span> {
+            <span class="type">HStack</span> {
+                <span class="type">Text</span>(<span class="string">"</span>\(<span class="type">Int</span>(sliderRange.<span class="property">lowerBound</span>))<span class="string">"</span>)
+                <span class="type">VStack</span> {
+                    <span class="type">Slider</span>(value: $sliderValue,
+                           from: sliderRange.<span class="property">lowerBound</span>,
+                           through: sliderRange.<span class="property">upperBound</span>,
+                           by: distance)
+                    <span class="type">Text</span>(<span class="string">"</span>\(<span class="type">Int</span>(sliderValue))<span class="string">"</span>)
+                }
+                <span class="type">Text</span>(<span class="string">"</span>\(<span class="type">Int</span>(sliderRange.<span class="property">upperBound</span>))<span class="string">"</span>)
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-slider.gif" alt="Animated image showing SwiftUI slider on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>Stepper</h3><p>A <em>Stepper</em> can be implemented similar to a <em>Slider.</em> Instead of specifying <em>from</em> and <em>through</em> just specify a range. 🚀</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">private let</span> roomsRange: <span class="type">CountableClosedRange</span>&lt;<span class="type">Int</span>&gt; = <span class="number">0</span>...<span class="number">10</span>
+    <span class="keyword">@State private var</span> roomsValue: <span class="type">Int</span> = <span class="number">0</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Form</span> {
+            <span class="type">HStack</span> {
+                <span class="type">Stepper</span>(value: $roomsValue, in: roomsRange) {
+                    <span class="type">Text</span>(<span class="string">"Rooms"</span>)
+                }
+                <span class="type">Text</span>(<span class="string">"</span>\(roomsValue)<span class="string">"</span>)
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-stepper.gif" alt="Animated image showing SwiftUI stepper on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>TextField</h3><p>To get a simple <em>TextField</em> use the <em>TextField</em> view. Pass a string specifying the placeholder and a binding for the input to the initializer. You can put the <em>TextField</em> into a <em>HStack</em> alongside a <em>Text</em> and add it to a <em>Form</em> to get the following inline style.</p><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> name: <span class="type">String</span> = <span class="string">""</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Form</span> {
+            <span class="type">HStack</span> {
+                <span class="type">Text</span>(<span class="string">"Name:"</span>)
+                <span class="type">TextField</span>(<span class="string">"Name"</span>, text: $name)
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-textfield.png" alt="Screenshot of result on iPhone 8 Plus"/><p><em>Result on iPhone 8 Plus</em></p><h3>SecureField</h3><p>A <em>SecureField</em> is a variation of <em>TextField</em> which should be used for secure inputs, like passwords or credit card cvc. Pass a <em>title</em> and a <em>binding</em> to the initializer.</p><blockquote><p>Hint: I think the SecureField has a bug because the title / placeholder is not visible. I expect the same behaviour as with a TextField view.</p></blockquote><pre><code><span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> password: <span class="type">String</span> = <span class="string">""</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Form</span> {
+            <span class="type">HStack</span> {
+                <span class="type">Text</span>(<span class="string">"Password:"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                <span class="type">SecureField</span>(<span class="string">"Password"</span>, text: $password)
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-securefield.gif" alt="Animated image showing SwiftUI secure field on iPhone XR"/><p><em>Result on iPhone XR</em></p><h3>SegmentedControl</h3><p>Last but not least implementing a segmented control is easy with the <em>SegmentedControl</em> view.</p><pre><code><span class="keyword">enum</span> Architecture: <span class="type">String</span>, <span class="type">CaseIterable</span> {
+    <span class="keyword">case</span> mvc
+    <span class="keyword">case</span> mvvm
+    <span class="keyword">case</span> viper
+}
+<span class="keyword">struct</span> ContentView : <span class="type">View</span> {
+    <span class="keyword">@State private var</span> selectedArchitecture: <span class="type">Architecture</span> = .<span class="dotAccess">viper</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">Form</span> {
+            <span class="type">HStack</span> {
+                <span class="type">Text</span>(<span class="string">"Architecture:"</span>)
+                    .<span class="call">font</span>(.<span class="dotAccess">headline</span>)
+                <span class="type">Picker</span>(selection: $selectedArchitecture, label: <span class="type">Text</span>(<span class="string">"Architecture"</span>)) {
+                    <span class="type">ForEach</span>(<span class="type">Architecture</span>.<span class="property">allCases</span>, id: \.<span class="keyword">self</span>) { architecture <span class="keyword">in</span>
+                        <span class="type">Text</span>(architecture.<span class="property">rawValue</span>)
+                    }
+                }.<span class="call">pickerStyle</span>(<span class="type">SegmentedPickerStyle</span>())
+            }
+        }
+    }
+}
+</code></pre><img src="swiftui-basics-segmentedcontrol.gif" alt="Animated image showing SwiftUI segmented control on iPhone XR"/><p><em>Result on iPhone XR</em></p><p>You did it 🏆🎉.</p><p>I hope you got an overview of all the basic UI components of <strong>SwiftUI</strong> and learned how to use them. I really enjoyed playing around with all these components and I’m really excited to see what we all do with these in the future.</p><p>Stay tuned 📺.</p>]]></content:encoded></item><item><guid isPermaLink="true">https://christianelies.de/posts/viper-architecture</guid><title>VIPER 🐍 Architecture Evolution for iOS</title><description>Improvements over time to an existing Architecture pattern</description><link>https://christianelies.de/posts/viper-architecture</link><pubDate>Sun, 27 Jan 2019 18:00:00 +0100</pubDate><content:encoded><![CDATA[<h1>VIPER 🐍 Architecture Evolution for iOS</h1><a href="https://christianelies.de/tags/viper"><span class="badge badge-pill badge-danger fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">viper</span></a><a href="https://christianelies.de/tags/softwarearchitecture"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">software-architecture</span></a><a href="https://christianelies.de/tags/ios"><span class="badge badge-pill badge-success fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">ios</span></a><p class="text-danger">27. Jan 2019</p><img src="viper-architecture-header.jpg" alt="Title image"/><p><em>designed by freepik.com</em></p><p>A long time ago our iOS team decided to try the <em>VIPER</em> Architecture pattern. There are a lot of variations of that pattern around. Over time, we have had a wide variety of use cases for which the classic <em>VIPER</em> Architecture (see below) doesn’t offer standardised solutions. That’s why we modified the Architecture pattern for our needs. Now I want to share our learnings and improvements.</p><blockquote><p>For those of you who don’t know the <em>VIPER</em> Architecture pattern here is a simple example: Let’s say you want to show a list of items in your app. Normally you would only create a <em>UIViewController</em> including a <em>UIView</em> for that. Doing that the <em>VIPER</em> way means you create 5 components which all have its single responsibility.</p></blockquote><ol><li><em>View:</em> I think you all know what this component is. Most of the time it’s a <em>UIViewController</em>, sometimes it‘s only a <em>UIView</em>. It shows UI elements to the user.</li><li><em>Presenter:</em> He is responsible for fetching data from the <em>Interactor</em>, for creating view models from that data and for updating the V<em>iew</em>. In addition he tells the <em>Router</em> to navigate to another <em>View or</em> to show another <em>View</em>.</li><li><em>Interactor:</em> The <em>Interactor</em> takes care of the business logic, for example fetching data from an API or local database.</li><li><em>Router:</em> As mentioned before he is responsible for navigation, maybe that means showing a modal view controller or pushing a view controller onto a navigation stack.</li><li><em>Wireframe:</em> He connects all aforementioned components and returns a ready to use <em>View</em>.</li></ol><p>In the following I will use <em>VIPER stack</em> as an alias for all the aforementioned components.</p><h2>🚶🏾 The VIPER Architecture variation we started with</h2><p>Take a look at the <em>VIPER</em> Architecture variation we started with.</p><img src="viper-architecture-start.jpg" alt="VIPER Architecture we started with"/><p><em>VIPER Architecture we started with</em></p><p>A long time ago a new app project knocked at our door and we decided to follow this Architecture pattern for the first time. We needed some time to understand <em>VIPER</em> and this variation at all. After getting used to it we fall in love with <em>VIPER</em>.</p><p>We started with the following boilerplate code.</p><p><strong>1.</strong> The code for a <em>View</em> (<em>UIView</em> or <em>UIViewController</em>):</p><pre><code><span class="keyword">protocol</span> ViewProtocol: <span class="keyword">class</span> {}
+<span class="keyword">final class</span> ViewController: <span class="type">UIViewController</span> {
+    <span class="keyword">private var</span> presenter: <span class="type">PresenterProtocol</span>?
+}
+<span class="keyword">extension</span> <span class="type">ViewController</span>: <span class="type">ViewProtocol</span> {}
+</code></pre><p><strong>2.</strong> The code for a <em>Presenter</em>:</p><pre><code><span class="keyword">protocol</span> PresenterProtocol {}
+<span class="keyword">final class</span> Presenter: <span class="type">PresenterProtocol</span> {
+    <span class="keyword">private weak var</span> view: <span class="type">ViewProtocol</span>?
+    <span class="keyword">private var</span> interactor: <span class="type">InteractorInputProtocol</span>?
+    <span class="keyword">private var</span> router: <span class="type">RouterProtocol</span>?
+}
+<span class="keyword">extension</span> <span class="type">Presenter</span>: <span class="type">InteractorOutputProtocol</span> {}
+</code></pre><p><strong>3.</strong> The code for an I<em>nteractor</em>:</p><pre><code><span class="keyword">protocol</span> InteractorOutputProtocol: <span class="keyword">class</span> {}
+<span class="keyword">protocol</span> InteractorInputProtocol {}
+<span class="keyword">final class</span> Interactor: <span class="type">InteractorInputProtocol</span> {
+    <span class="keyword">private weak var</span> presenter: <span class="type">InteractorOutputProtocol</span>?
+}
+</code></pre><p><strong>4.</strong> The code for a <em>Router</em>:</p><pre><code><span class="keyword">protocol</span> RouterProtocol {}
+<span class="keyword">final class</span> Router: <span class="type">RouterProtocol</span> {}
+</code></pre><p><strong>5.</strong> The code for a W<em>ireframe</em>:</p><pre><code><span class="keyword">enum</span> WireframeError: <span class="type">Error</span> {
+    <span class="keyword">case</span> couldNotInstantiateInitialViewController
+}
+<span class="keyword">protocol</span> WireframeProtocol {
+    <span class="keyword">static func</span> makeView() <span class="keyword">throws</span> -&gt; <span class="type">ViewProtocol</span>
+}
+<span class="keyword">final class</span> Wireframe: <span class="type">WireframeProtocol</span> {
+    <span class="keyword">static func</span> makeView() <span class="keyword">throws</span> -&gt; <span class="type">ViewProtocol</span> {
+        <span class="keyword">guard let</span> view = <span class="type">UIStoryboard</span>(named: <span class="string">"View"</span>, bundle: <span class="keyword">nil</span>).<span class="call">instantiateInitialViewController</span>() <span class="keyword">as</span>? <span class="type">ViewProtocol</span> <span class="keyword">else</span> {
+            <span class="keyword">throw</span> <span class="type">WireframeError</span>.<span class="property">couldNotInstantiateInitialViewController</span>
+        }
+        
+        <span class="keyword">let</span> presenter = <span class="type">Presenter</span>()
+        <span class="keyword">let</span> interactor = <span class="type">Interactor</span>()
+        <span class="keyword">let</span> router = <span class="type">Router</span>()
+        view.<span class="property">presenter</span> = presenter
+        presenter.<span class="property">view</span> = view
+        presenter.<span class="property">interactor</span> = interactor
+        presenter.<span class="property">router</span> = router
+        interactor.<span class="property">presenter</span> = presenter
+        <span class="keyword">return</span> view
+    }
+}
+</code></pre><p>The app we created at that time had only a few views. For every view we created a <em>VIPER</em> <em>stack</em>.</p><p>Now we can move on to the 7 issues we experienced over the time following the <em>VIPER A</em>rchitecture pattern.</p><h3>1. Setting up a UICollectionView</h3><p>We wanted to integrate a <em>UICollectionView</em> in the app to show a list of items to the user. When you take a look at the above Architecture diagram it’s not obvious what’s the best way for setting up a <em>UICollectionView</em> with its delegate and data source.</p><blockquote><p>We discussed it in the team and chose a solution. The <em>Presenter</em> as the Entity responsible for creating view models and telling the <em>View</em> to update itself should take care of it.</p></blockquote><p>To do so the <em>ViewProtocol</em> should require a get only collection view property. That way the <em>Presenter</em> would be able to access the <em>UICollectionView</em>.</p><pre><code><span class="keyword">import</span> UIKit
+<span class="keyword">protocol</span> ViewProtocol: <span class="keyword">class</span> {
+    <span class="keyword">var</span> collectionView: <span class="type">UICollectionView</span>! { <span class="keyword">get</span> }
+}
+<span class="keyword">final class</span> ViewController: <span class="type">UIViewController</span> {
+    <span class="keyword">private(set) weak var</span> collectionView: <span class="type">UICollectionView</span>!
+}
+<span class="keyword">extension</span> <span class="type">ViewController</span>: <span class="type">ViewProtocol</span> {}
+</code></pre><p>Then the <em>Presenter</em> creates the delegate and data source for the <em>UICollectionView</em> and sets it up using the collection view property of the <em>View</em>. In a first version the <em>Presenter</em> was the <em>UICollectionViewDelegate</em> and <em>UICollectionViewDataSource</em>.</p><p>Apart from this the <em>Presenter</em> created view models using data fetched from the <em>Interactor</em>. Over time that introduced another problem.</p><h3>2. Presenter getting too big</h3><p>The <em>Presenter</em> file grew fast and had too many lines of code. We chose to reduce the responsibilities of the <em>Presenter</em>. We created separate reusable types for the <em>UICollectionViewDelegate</em> and <em>UICollectionViewDataSource</em>. Later on we met <a href="https://github.com/Instagram/IGListKit"><em>IGListKit</em></a> and used that instead. In addition we outsourced the view model creation to a separate type which we call <em>ViewModelCreator</em> or <em>ViewModelFactory</em>.</p><h3>3. Delegation Spaghetti code</h3><div style="width:100%;height:0;padding-bottom:56%;position:relative;"><iframe src="https://giphy.com/embed/3o7qDKdHAqamtq0uBi" width="100%" height="100%" style="position:absolute" frameBorder="0" class="giphy-embed" allowFullScreen></iframe></div><p><a href="https://giphy.com/gifs/pasta-skydiving-skydive-3o7qDKdHAqamtq0uBi">via GIPHY</a></p><p>More and more the delegation between the I<em>nteractor</em> and the <em>Presenter</em> made no sense for most of our use cases. Mostly the <em>Interactor</em> starts async tasks. The <em>Presenter</em> should react to the completion of that task right where he called the <em>Interactor</em> method.</p><blockquote><p>The <em>VIPER</em> variation we started with defines that the <em>Presenter</em> triggers an async task on the <em>Interactor</em>. At some point in the future the <em>Interactor</em> tells the <em>Presenter</em> that he finished this task. In the <em>Presenter</em> the logic which belongs together is scattered and hard to test, namely the call of the async <em>Interactor</em> method and the logic which should be executed in response (success or failure).</p></blockquote><p>Thus we removed the <em>InteractorOutputProtocol</em> and renamed the <em>InteractorInputProtocol</em> to <em>InteractorProtocol</em>. Additionally we were able to remove the <em>Presenter</em> property from the <em>Interactor</em> (see example code below). If the called <em>Interactor</em> method is asynchronous we use <a href="https://github.com/mxcl/PromiseKit"><em>PromiseKit</em></a> to return a promise. That way the code for calling the async task and for responding to the result stays together.</p><h3>4. Unnecessary optional references in Presenter</h3><p>As we created more and more <em>VIPER stacks</em> we brought the optional connections between some components into question. We unwrapped the <em>Interactor</em> and the <em>Router</em> in the <em>Presenter</em> over and over again. Then we decided that we don’t want a <em>VIPER stack</em> which has no <em>Interactor</em> or <em>Router</em>. Each <em>VIPER stack</em> should have all components to maintain uniformity when it comes to Architecture.</p><p>To make sure of that we first create the <em>Interactor</em> and the <em>Router</em> in the <em>Wireframe</em> and pass them to the initializer of the <em>Presenter</em>.</p><p>The code of the <em>Presenter</em> changes to:</p><pre><code><span class="keyword">protocol</span> PresenterProtocol {}
+<span class="keyword">final class</span> Presenter: <span class="type">PresenterProtocol</span> {
+    <span class="keyword">private weak var</span> view: <span class="type">ViewProtocol</span>?
+    <span class="keyword">private let</span> interactor: <span class="type">InteractorProtocol</span>
+    <span class="keyword">private let</span> router: <span class="type">RouterProtocol</span>
+    <span class="keyword">init</span>(interactor: <span class="type">InteractorProtocol</span>, router: <span class="type">RouterProtocol</span>) {
+        <span class="keyword">self</span>.<span class="property">interactor</span> = interactor
+        <span class="keyword">self</span>.<span class="property">router</span> = router
+    }
+}
+</code></pre><p>The code of the <em>Interactor</em> changes to:</p><pre><code><span class="keyword">protocol</span> InteractorProtocol {}
+<span class="keyword">final class</span> Interactor: <span class="type">InteractorProtocol</span> {}
+</code></pre><p>The <em>makeView</em> implementation in the <em>Wireframe</em> changes to:</p><pre><code><span class="keyword">static func</span> makeView() <span class="keyword">throws</span> -&gt; <span class="type">ViewProtocol</span> {
+    ...
+    <span class="keyword">let</span> interactor = <span class="type">Interactor</span>()
+    <span class="keyword">let</span> router = <span class="type">Router</span>()
+    <span class="keyword">let</span> presenter = <span class="type">Presenter</span>(interactor: interactor, router: router)
+    presenter.<span class="property">view</span> = view
+    view.<span class="property">presenter</span> = presenter
+    <span class="keyword">return</span> view
+}
+</code></pre><h3>5. Interactor shouldn’t take care of all the business logic</h3><p>As time passed the <em>Interactor</em> did a lot of things. That’s why we decided to move some of the business logic into small, reusable and testable <em>Services</em>, which follow the <em>Single Responsibility</em> pattern. Now the <em>Interactor</em> handles less business logic, stays small and is easy to maintain.</p><h3>6. Updating the VIPER stack from the outside</h3><p>Sometimes we want to update a <em>VIPER stack</em> from the outside world. Right now it’s hard because the <em>makeView</em> method of the <em>Wireframe</em> only returns an object conforming to the <em>ViewProtocol</em>. There are ways to do that but all of them are a bit dirty.</p><p>We concluded to enter the <em>VIPER stack</em> via the already exposed <em>View</em>. First we created a <em><code>ModuleName</code>Protocol</em> which defines the interfaces of the <em>VIPER stack</em>. The <em>View</em> implements that protocol and only delegates to the <em>Presenter</em>. The <em>Presenter</em> then does something, like requesting data from the <em>Interactor,</em> creating view models and updating the data source of a UI<em>CollectionView</em>.</p><pre><code><span class="keyword">protocol</span> &lt;ModuleName&gt;<span class="type">Protocol</span>: <span class="keyword">class</span> {}
+<span class="keyword">protocol</span> ViewProtocol: &lt;<span class="type">ModuleName</span>&gt;<span class="type">Protocol</span> {}
+<span class="keyword">final class</span> ViewController: <span class="type">UIViewController</span> {}
+<span class="keyword">extension</span> <span class="type">ViewController</span>: <span class="type">ViewProtocol</span> {}
+<span class="keyword">extension</span> <span class="type">ViewController</span>: &lt;<span class="type">ModuleName</span>&gt;<span class="type">Protocol</span> {}
+</code></pre><p>From the outside we now have access to the properties and methods defined in the <em>Protocol</em>.</p><p>Sometimes we have nested <em>VIPER stacks</em> and want to update an underlying <em>stack</em>. We do that using the <em>Router</em> because hecreates the <em>View</em> of the underlying <em>VIPER stack</em> with the help of a <em>Wireframe</em>. The <em>Router</em> only needs to store a reference to that <em>View</em> and use it later on to update the underlying <em>VIPER stack</em>.</p><h3>7. Communicating with the outside from inside a VIPER stack</h3><p>Occasionally we want to notify the outside world that something inside a specific <em>VIPER stack</em> happened. We had to decide which component should do that. Over time we more and more saw the <em>Presenter</em> as some kind of <em>Man in the Middle</em>. That’s why he gets an object conforming to <em><code>ModuleName</code>DelegateProtocol</em> and calls the delegate methods if needed.</p><pre><code><span class="keyword">protocol</span> &lt;ModuleName&gt;<span class="type">DelegateProtocol</span>: <span class="keyword">class</span> {}
+<span class="keyword">protocol</span> PresenterProtocol {}
+<span class="keyword">final class</span> Presenter: <span class="type">PresenterProtocol</span> {
+    <span class="keyword">private weak var</span> view: <span class="type">ViewProtocol</span>?
+    <span class="keyword">private let</span> interactor: <span class="type">InteractorProtocol</span>
+    <span class="keyword">private let</span> router: <span class="type">RouterProtocol</span>
+    <span class="keyword">private weak var</span> delegate: &lt;<span class="type">ModuleName</span>&gt;<span class="type">DelegateProtocol</span>?
+    <span class="keyword">init</span>(interactor: <span class="type">InteractorProtocol</span>, router: <span class="type">RouterProtocol</span>, delegate: &lt;<span class="type">ModuleName</span>&gt;<span class="type">DelegateProtocol</span>?) {
+        <span class="keyword">self</span>.<span class="property">interactor</span> = interactor
+        <span class="keyword">self</span>.<span class="property">router</span> = router
+        <span class="keyword">self</span>.<span class="property">delegate</span> = delegate
+    }
+}
+</code></pre><p>A simple real world example shows the need for communicating with the outside. Think about 2 views, one view showing a list of items and another view showing the details of one item.</p><blockquote><p>We would create a <em>VIPER stack</em> for each view. If the user selects an item from the list we would use the <em>Router</em> to present the <em>View</em> for the item details. That’s easy. But if the user updates the item details we want to reflect these changes in the list after returning to it.</p></blockquote><p>To do so we create a delegate protocol for the item details <em>VIPER stack</em>. The <em>Presenter</em> of the item list <em>VIPER stack</em>conforms to that protocol. We pass him to the <em>makeView</em> method of the <em>Wireframe</em> for the item details <em>VIPER stack</em>. The <em>Wireframe</em> then passes it to the <em>Presenter</em> which stores the reference and calls an appropriate method on the delegate after the details of an item have been updated.</p><pre><code><span class="keyword">protocol</span> ItemDetailsDelegateProtocol: <span class="keyword">class</span> {
+    <span class="call">didUpdateDetails</span>(ofItem item: <span class="type">Item</span>)
+}
+...
+<span class="keyword">extension</span> <span class="type">ItemListPresenter</span>: <span class="type">ItemDetailsDelegateProtocol</span> {
+    <span class="call">didUpdateDetails</span>(ofItem item: <span class="type">Item</span>) {
+        <span class="call">updateList</span>()
+    }
+}
+...
+<span class="keyword">final class</span> ItemDetailsWireframe: <span class="type">ItemDetailsWireframeProtocol</span> {
+    <span class="keyword">static func</span> makeView(usingDelegate delegate: <span class="type">ItemDetailsDelegateProtocol</span>?) <span class="keyword">throws</span> -&gt; <span class="type">ViewProtocol</span> {
+        ...
+        <span class="keyword">let</span> presenter = <span class="type">Presenter</span>(interactor: interactor, router: router, delegate: delegate)
+        ...
+        <span class="keyword">return</span> view
+    }
+}
+</code></pre><p>Finally we take a look at the Architecture Evolution.</p><h2>🚀 VIPER Architecture Evolution</h2><img src="viper-architecture-end.jpg" alt="VIPER Architecture Evolution"/><p><em>VIPER Architecture Evolution</em></p><p>That’s the <em>VIPER</em> Architecture variation we developed over time.</p><blockquote><p>We are very happy with it. The code we write following the pattern is easy to <strong>maintain</strong> and to <strong>test</strong>. It forces us to write <strong>independent modules</strong> and makes it <strong>easy to outsource</strong> them into separate projects. As always: <strong>Divide and conquer</strong>. To make the daily business easier we created a <a href="https://github.com/crelies/Viper-Xcode-Template">Xcode Template</a> for our <em>VIPER</em>Architecture variation.</p></blockquote><h3>Oh wait ✋ … what about Dependency Injection?</h3><p>We want to inject dependencies into the <em>VIPER</em> components. At the beginning we passed the dependencies of each component into their initializers. That led to huge initializers and was hard to maintain.</p><p>One of my colleagues had a great idea - to use only Swift <em>Protocols</em> and <em>Structs.</em> An easy to use and native dependency injection system was born. I’ll talk about that in a different story. Stay tuned :-)</p><p>Finally I would love to hear what you think about <em>VIPER</em> and especially about our Evolution. I know that <em>VIPER</em> is very controversial ;) And yes, we know about <em>VIP</em> but right now I’m not convinced.</p><h3>Links</h3><ul><li><a href="https://github.com/Instagram/IGListKit">IGListKit</a></li><li><a href="https://github.com/mxcl/PromiseKit">PromiseKit</a></li><li><a href="https://github.com/crelies/Viper-Xcode-Template">Viper-Xcode-Template</a></li></ul><p><a href="https://github.com/crelies/"><strong>crelies - Overview</strong></a></p>]]></content:encoded></item></channel></rss>

@@ -1,0 +1,152 @@
+<!DOCTYPE html><html><head><title>Personal Website</title><meta name="twitter:title" content="Personal Website"/><meta name="og:title" content="Personal Website"/><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" type="text/css"/><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" type="text/css"/><link rel="stylesheet" href="https://christianelies.de/styles.css" type="text/css"/><meta charset="UTF-8"/></head><body><header><div class="text-center pt-4 fs-12"><a class="text-danger text-monospace" href="https://christianelies.de"><p class="mb-0">debugPrint("Hello world!")</p></a></div><nav class="navbar navbar-expand-lg navbar-dark bg-dark justify-content-center"><div class="navbar-nav"><a class="nav-item nav-link fs-18" href="https://christianelies.de/me">.me</a><a class="nav-item nav-link active fs-18" href="https://christianelies.de/posts">.posts</a><a class="nav-item nav-link fs-18" href="https://christianelies.de/projects">.projects</a></div></nav><ul class="list-inline text-center pb-4 mb-0"><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://github.com/crelies"><i class="fab fa-github fs-14"></i></a></li><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://medium.com/@crelies"><i class="fab fa-medium fs-14"></i></a></li><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://stackoverflow.com/story/crelies"><i class="fab fa-stack-overflow fs-14"></i></a></li><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://www.xing.com/profile/Christian_Elies2"><i class="fab fa-xing fs-14"></i></a></li><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://www.linkedin.com/in/christian-elies-b1009b104"><i class="fab fa-linkedin fs-14"></i></a></li></ul></header><div class="page-wrapper text-white"><h1>Meet &amp; Greet - List Pagination in SwiftUI</h1><a href="https://christianelies.de/tags/pagination"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">pagination</span></a><a href="https://christianelies.de/tags/swiftui"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">swiftui</span></a><p class="text-danger">12. Aug 2019</p><img src="list-pagination-header.png" alt="Screenshot of Bootstrap pagination"/><p><em>Screenshot of Bootstrap pagination</em></p><p>My latest SwiftUI demo project fetches data from a REST API and then paginates the responses. That’s why I was looking for an easy way to add pagination support to the SwiftUI List view.</p><p>In the current beta (Xcode 11 beta 5), there isn’t a ready-to-use functionality provided. That’s why we’ll implement a simple solution in the next few minutes.</p><h2>The Goal</h2><p>While we can access an item in the current iteration in the content block of the List view, we know nothing about its current position in the list or how close we are to the end of the list. That’s where pagination comes in.</p><p><em>Pagination</em> can mean different things to different people. So let’s start by defining my desired end goal:</p><blockquote><p>During scrolling, the list should fetch and append the items of the next pages. A loading view should be displayed when the user reaches the end of the list and a request is still in progress.</p></blockquote><p>With this end in mind, let’s implement a solution that fixes these problems and adds pagination support to the List view.</p><h2>The Implementation</h2><p>In this section, we’ll take a look at two different approaches. While the first approach is more obvious, advanced users may appreciate the user-oriented functionality of the second approach.</p><h3>First approach</h3><p>A simple solution is to check if the item in the current iteration is the last item of the list. If that’s true, we trigger an asynchronous request to fetch the items of the next page.</p><p><strong>RandomAccessCollection+isLastItem</strong></p><p>Because the List view supports <code>RandomAccessCollection</code> we can create an extension and implement an <code>isLastItem</code>function. The key is the <code>Self </code>requirement, which restricts the extension to collections where the elements conform to the <code>Identifiable</code> protocol.</p><pre><code><span class="keyword">extension</span> <span class="type">RandomAccessCollection</span> <span class="keyword">where</span> <span class="type">Self</span>.<span class="type">Element</span>: <span class="type">Identifiable</span> {
+    <span class="keyword">func</span> isLastItem&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> item: <span class="type">Item</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">guard</span> !isEmpty <span class="keyword">else</span> {
+            <span class="keyword">return false</span>
+        }
+        
+        <span class="keyword">guard let</span> itemIndex = <span class="call">firstIndex</span>(where: { $0.<span class="property">id</span>.<span class="property">hashValue</span> == item.<span class="property">id</span>.<span class="property">hashValue</span> }) <span class="keyword">else</span> {
+            <span class="keyword">return false</span>
+        }
+        
+        <span class="keyword">let</span> distance = <span class="keyword">self</span>.<span class="call">distance</span>(from: itemIndex, to: endIndex)
+        <span class="keyword">return</span> distance == <span class="number">1</span>
+    }
+}
+</code></pre><p>You pass an item conforming to the <code>Identifiable</code> protocol to the function, and it returns true if the item is the last item in the collection.</p><blockquote><p>The function looks for the index of the given item in the collection. It uses the hash value of the <code>*id*</code> property (requirement of the <code>*Identifiable*</code> protocol) to compare it to the other items in the list. If the item index is found, that means the distance between the item index and the end index has to be exactly one (the end index is equal to the current number of items in the collection). That’s how we know the given item is the last item.</p></blockquote><p>Instead of comparing the hash values, we can use the type-erased wrapper <code>AnyHashable</code> to directly compare the ids which are of the type <code>Hashable</code>.</p><pre><code><span class="keyword">guard let</span> itemIndex = <span class="call">firstIndex</span>(where: { <span class="type">AnyHashable</span>($0.<span class="property">id</span>) == <span class="type">AnyHashable</span>(item.<span class="property">id</span>) }) <span class="keyword">else</span> {
+    <span class="keyword">return false</span>
+}
+</code></pre><p>Now that the groundwork is laid, we can implement the user interface.</p><p><strong>User interface</strong></p><p>We want to trigger a list update if the end is reached. To achieve that we can use the <code>onAppear</code> modifier on the root view of each item. (In this example, it’s a VStack.) This calls the<code>listItemAppears</code> function below. We’ll take a look at that in a minute.</p><p>If the item of the current iteration is the last item, a loading view will be shown to the user. In this simple example, it’s the <code>Text(“Loading …”)</code>.</p><p>Since SwiftUI is declarative, the following code should be self-explanatory:</p><pre><code><span class="keyword">struct</span> ListPaginationExampleView: <span class="type">View</span> {
+    <span class="keyword">@State private var</span> items: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">24</span>).<span class="call">map</span> { <span class="string">"Item</span> \($0)<span class="string">"</span> }
+    <span class="keyword">@State private var</span> isLoading: <span class="type">Bool</span> = <span class="keyword">false
+    @State private var</span> page: <span class="type">Int</span> = <span class="number">0</span>
+    <span class="keyword">private let</span> pageSize: <span class="type">Int</span> = <span class="number">25</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(items) { item <span class="keyword">in</span>
+                <span class="type">VStack</span>(alignment: .<span class="dotAccess">leading</span>) {
+                    <span class="type">Text</span>(item)
+                    
+                    <span class="keyword">if self</span>.<span class="property">isLoading</span> &amp;&amp; <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">isLastItem</span>(item) {
+                        <span class="type">Divider</span>()
+                        <span class="type">Text</span>(<span class="string">"Loading ..."</span>)
+                            .<span class="call">padding</span>(.<span class="dotAccess">vertical</span>)
+                    }
+                }.<span class="call">onAppear</span> {
+                    <span class="keyword">self</span>.<span class="call">listItemAppears</span>(item)
+                }
+            }
+            .<span class="call">navigationBarTitle</span>(<span class="string">"List of items"</span>)
+            .<span class="call">navigationBarItems</span>(trailing: <span class="type">Text</span>(<span class="string">"Page index:</span> \(page)<span class="string">"</span>))
+        }
+    }
+}
+</code></pre><blockquote><p>The helper function <code>***listItemAppears\***</code> internally checks if the given item is the last item. If it’s the last item the current page is increased, and the items of the next page are appended to the list. In addition, we keep track of the loading state through the <code>***isLoading\***</code> variable, which defines when to show the loading view.</p></blockquote><pre><code><span class="keyword">extension</span> <span class="type">ListPaginationExampleView</span> {
+    <span class="keyword">private func</span> listItemAppears&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> item: <span class="type">Item</span>) {
+        <span class="keyword">if</span> items.<span class="call">isLastItem</span>(item) {
+            isLoading = <span class="keyword">true</span>
+            
+            <span class="comment">/*
+                Simulated async behaviour:
+                Creates items for the next page and
+                appends them to the list after a short delay
+             */</span>
+            <span class="type">DispatchQueue</span>.<span class="property">main</span>.<span class="call">asyncAfter</span>(deadline: <span class="type">DispatchTime</span>.<span class="call">now</span>() + <span class="number">3</span>) {
+                <span class="keyword">self</span>.<span class="property">page</span> += <span class="number">1</span>
+                <span class="keyword">let</span> moreItems = <span class="keyword">self</span>.<span class="call">getMoreItems</span>(forPage: <span class="keyword">self</span>.<span class="property">page</span>, pageSize: <span class="keyword">self</span>.<span class="property">pageSize</span>)
+                <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">append</span>(contentsOf: moreItems)
+                
+                <span class="keyword">self</span>.<span class="property">isLoading</span> = <span class="keyword">false</span>
+            }
+        }
+    }
+}
+</code></pre><p>With this implementation, we fetch the next page of items only if the item in the current iteration <em>is</em> the last item.</p><p>But that’s not really the best user experience, right? In a real app, we’d want to preload the next page should a defined threshold be reached or passed. Further, we should only disrupt the user with a loading indicator if truly necessary (i.e. if the request takes longer than expected). This, in my opinion, would lead to a better user experience.</p><p>Given these user-experience concerns, let’s hop on over to the second approach.</p><h3>Second approach</h3><p>Here we’ll learn how to fetch the next page of items if a given threshold is passed.</p><p><strong>RandomAccessCollection+isThresholdItem</strong></p><p>Again, we’ll begin by extending the <code>RandomAccessCollection</code>. This time we’ll implement a function called <code>isThresholdItem</code> which determines if the given item is the threshold item.</p><pre><code><span class="keyword">extension</span> <span class="type">RandomAccessCollection</span> <span class="keyword">where</span> <span class="type">Self</span>.<span class="type">Element</span>: <span class="type">Identifiable</span> {
+    <span class="keyword">func</span> isThresholdItem&lt;Item: <span class="type">Identifiable</span>&gt;(offset: <span class="type">Int</span>,
+                                             item: <span class="type">Item</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">guard</span> !isEmpty <span class="keyword">else</span> {
+            <span class="keyword">return false</span>
+        }
+        
+        <span class="keyword">guard let</span> itemIndex = <span class="call">firstIndex</span>(where: { <span class="type">AnyHashable</span>($0.<span class="property">id</span>) == <span class="type">AnyHashable</span>(item.<span class="property">id</span>) }) <span class="keyword">else</span> {
+            <span class="keyword">return false</span>
+        }
+        
+        <span class="keyword">let</span> distance = <span class="keyword">self</span>.<span class="call">distance</span>(from: itemIndex, to: endIndex)
+        <span class="keyword">let</span> offset = offset &lt; count ? offset : count - <span class="number">1</span>
+        <span class="keyword">return</span> offset == (distance - <span class="number">1</span>)
+    }
+}
+</code></pre><blockquote><p>This function looks for the index of the given item. If found, it calculates the distance to the end index. The specified offset (i.e. the number of items before the end) should be equal to <code>***distance — 1\***</code>. We have to substract 1 from the distance because the end index equals the value of the count property (i.e. the current number of items in the collection). I also added a simple validation check for the offset. The offset should be less than the current number of items in the collection.</p></blockquote><p>Now we’re ready to move on to the user interface once again.</p><p><strong>User interface</strong></p><p>The UI implementation is nearly identical to our UI in the first approach. There is one key difference, however, and that’s in the <code>listItemAppears</code> function.</p><blockquote><p>Keep in mind that we reuse the <code>*isLastItem*</code> function from the first approach here. The loading view will show only if the user reaches the end of the list and the request for the next page is still in progress.</p></blockquote><pre><code><span class="keyword">struct</span> ListPaginationThresholdExampleView: <span class="type">View</span> {
+    <span class="keyword">@State private var</span> items: [<span class="type">String</span>] = <span class="type">Array</span>(<span class="number">0</span>...<span class="number">24</span>).<span class="call">map</span> { <span class="string">"Item</span> \($0)<span class="string">"</span> }
+    <span class="keyword">@State private var</span> isLoading: <span class="type">Bool</span> = <span class="keyword">false
+    @State private var</span> page: <span class="type">Int</span> = <span class="number">0</span>
+    <span class="keyword">private let</span> pageSize: <span class="type">Int</span> = <span class="number">25</span>
+    <span class="keyword">private let</span> offset: <span class="type">Int</span> = <span class="number">10</span>
+    
+    <span class="keyword">var</span> body: <span class="keyword">some</span> <span class="type">View</span> {
+        <span class="type">NavigationView</span> {
+            <span class="type">List</span>(items) { item <span class="keyword">in</span>
+                <span class="type">VStack</span>(alignment: .<span class="dotAccess">leading</span>) {
+                    <span class="type">Text</span>(item)
+                    
+                    <span class="keyword">if self</span>.<span class="property">isLoading</span> &amp;&amp; <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">isLastItem</span>(item) {
+                        <span class="type">Divider</span>()
+                        <span class="type">Text</span>(<span class="string">"Loading ..."</span>)
+                            .<span class="call">padding</span>(.<span class="dotAccess">vertical</span>)
+                    }
+                }.<span class="call">onAppear</span> {
+                    <span class="keyword">self</span>.<span class="call">listItemAppears</span>(item)
+                }
+            }
+            .<span class="call">navigationBarTitle</span>(<span class="string">"List of items"</span>)
+            .<span class="call">navigationBarItems</span>(trailing: <span class="type">Text</span>(<span class="string">"Page index:</span> \(page)<span class="string">"</span>))
+        }
+    }
+}
+</code></pre><blockquote><p>Instead of calling <code>***isLastItem\***</code><em>,</em> we call <code>***isThresholdItem\***</code> to check if the given item is the threshold item.</p></blockquote><pre><code><span class="keyword">extension</span> <span class="type">ListPaginationThresholdExampleView</span> {
+    <span class="keyword">private func</span> listItemAppears&lt;Item: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> item: <span class="type">Item</span>) {
+        <span class="keyword">if</span> items.<span class="call">isThresholdItem</span>(offset: offset,
+                                 item: item) {
+            isLoading = <span class="keyword">true</span>
+            
+            <span class="comment">/*
+                Simulated async behaviour:
+                Creates items for the next page and
+                appends them to the list after a short delay
+             */</span>
+            <span class="type">DispatchQueue</span>.<span class="property">main</span>.<span class="call">asyncAfter</span>(deadline: <span class="type">DispatchTime</span>.<span class="call">now</span>() + <span class="number">0.5</span>) {
+                <span class="keyword">self</span>.<span class="property">page</span> += <span class="number">1</span>
+                <span class="keyword">let</span> moreItems = <span class="keyword">self</span>.<span class="call">getMoreItems</span>(forPage: <span class="keyword">self</span>.<span class="property">page</span>, pageSize: <span class="keyword">self</span>.<span class="property">pageSize</span>)
+                <span class="keyword">self</span>.<span class="property">items</span>.<span class="call">append</span>(contentsOf: moreItems)
+                
+                <span class="keyword">self</span>.<span class="property">isLoading</span> = <span class="keyword">false</span>
+            }
+        }
+    }
+}
+</code></pre><p>If you’re an especially attentive reader, you may have noticed some pieces of code are missing. Let’s get to those in the next section.</p><h3>Missing code pieces</h3><p><strong>getMoreItems</strong></p><p>The following shows the implementation of the <code>getMoreItems</code> function:</p><pre><code><span class="keyword">extension</span> <span class="type">ListPaginationExampleView</span> {
+    <span class="comment">/*
+        In a real app you would probably fetch data
+        from an external API.
+     */</span>
+    <span class="keyword">private func</span> getMoreItems(forPage page: <span class="type">Int</span>,
+                              pageSize: <span class="type">Int</span>) -&gt; [<span class="type">String</span>] {
+        <span class="keyword">let</span> maximum = ((page * pageSize) + pageSize) - <span class="number">1</span>
+        <span class="keyword">let</span> moreItems: [<span class="type">String</span>] = <span class="type">Array</span>(items.<span class="property">count</span>...maximum).<span class="call">map</span> { <span class="string">"Item</span> \($0)<span class="string">"</span> }
+        <span class="keyword">return</span> moreItems
+    }
+}
+</code></pre><p><strong>String+Identifiable</strong></p><p>Here’s the final extension needed to make the code for the <em>List</em> <em>view</em> work:</p><pre><code><span class="comment">/*
+    If you want to display an array of strings
+    in the List view you have to specify a key path,
+    so each string can be uniquely identified.
+    With this extension you don't have to do that.
+ */</span>
+<span class="keyword">extension</span> <span class="type">String</span>: <span class="type">Identifiable</span> {
+    <span class="keyword">public var</span> id: <span class="type">String</span> {
+        <span class="keyword">return self</span>
+    }
+}
+</code></pre><p>This string extension makes it easy to directly use an array of strings in the related List view initializer.</p><h2>The Result</h2><p>Finally, let’s look at our results.</p><p>The first GIF shows the <code>isLastItem</code> approach:</p><img src="list-pagination-last-item.gif" alt="Animated image showing the last-item approach on iPhone XR simulator"/><p><em>Animated image showing the last-item approach on iPhone XR simulator</em></p><p>The next gif shows the <code>isThresholdItem</code> approach:</p><img src="list-pagination-threshold.gif" alt="Animated image showing threshold approach on iPhone XR simulator"/><p><em>Animated image showing threshold approach on iPhone XR simulator</em></p><p>Congrats! You are now ready to use pagination in your SwiftUI lists.</p><p>Thanks again for reading one of my articles!</p><h2>Resources</h2><p>Here’s the code for this article:</p><p><a href="https://github.com/crelies/List-Pagination-SwiftUI"><strong>crelies/List-Pagination-SwiftUI</strong></a></p><p>Also available as a package:</p><p><a href="https://github.com/crelies/ListPagination"><strong>crelies/ListPagination</strong></a></p></div><footer class="mb-3"><div class="text-center fs-12 w-50 center-horizontally"><p class="text-danger text-monospace">    LegalNotice(name: "Christian Elies",
+                city: "Lüneburg")<br/><br/>Copyright © Christian Elies 2020.<br/><p class="text-danger mb-0">Generated using <a target="_blank" class="text-danger text-decoration-underline" href="https://github.com/JohnSundell/Publish">Publish</a>. 100% JavaScript-free.</p></p></div></footer></body></html>
