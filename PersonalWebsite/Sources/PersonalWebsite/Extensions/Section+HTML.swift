@@ -42,12 +42,12 @@ extension Section where Site == PersonalWebsite {
                                      headerTitle: "Personal tags",
                                      additionalHeaderIconClasses: ["mr-2"],
                                      tags: ["Family person",
-                                             "Minimalist",
-                                             "Traveler 4731: I love to travel",
-                                             "Skier",
-                                             "Father",
-                                             "Road racer",
-                                             "Swift developer"])
+                                            "Minimalist",
+                                            "Traveler 4731: I love to travel",
+                                            "Skier",
+                                            "Father",
+                                            "Road racer",
+                                            "Swift developer"])
                         )
                     )
                 ),

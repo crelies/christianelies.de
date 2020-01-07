@@ -15,9 +15,9 @@ extension Node where Context: HTML.BodyContext {
             .class("card \(TextColor.white.cssClass) bg-dark mb-3 card-size"),
             .div(
                 .class("card-header"),
-                .span(.i(.class(headerIconClass)),
-                      .text(headerTitle))
-            ),
+                .span(
+                    .i(.class(headerIconClass)),
+                    .text(headerTitle))),
             .div(
                 .class("card-body"),
                 .forEach(tags) { tag in

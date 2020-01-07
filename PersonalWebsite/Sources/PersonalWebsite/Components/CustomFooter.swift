@@ -23,7 +23,17 @@ extension Node where Context: HTML.BodyContext {
                     .br(),
                     "Copyright © Christian Elies 2020.",
                     .br(),
-                    "Generated using Publish. 100% JavaScript-free."
+                    .p(
+                        .class("\(TextColor.red.cssClass) mb-0"),
+                        "Generated using ",
+                        .a(
+                            .target(.blank),
+                            .class("\(TextColor.red.cssClass) text-decoration-underline"),
+                            .href("https://github.com/JohnSundell/Publish"),
+                            "Publish"
+                        ),
+                        ". 100% JavaScript-free."
+                    )
                 )
             )
         )

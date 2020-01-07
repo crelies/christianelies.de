@@ -21,6 +21,9 @@ header {
     max-width: 100%;
 }
 
+/*
+    Utilities
+ */
 .center-horizontally {
     margin-left: auto;
     margin-right: auto;
@@ -29,6 +32,10 @@ header {
 .align-horizontally {
     display: flex;
     align-items: center;
+}
+
+.text-decoration-underline {
+    text-decoration: underline;
 }
 
 /*
