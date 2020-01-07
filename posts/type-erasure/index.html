@@ -1,0 +1,191 @@
+<!DOCTYPE html><html><head><title>Personal Website</title><meta name="twitter:title" content="Personal Website"/><meta name="og:title" content="Personal Website"/><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" type="text/css"/><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" type="text/css"/><link rel="stylesheet" href="/styles.css" type="text/css"/><meta charset="UTF-8"/></head><body><header><div class="text-center pt-4 fs-12"><a class="text-danger text-monospace" href="/"><p class="mb-0">debugPrint("Hello world!")</p></a></div><nav class="navbar navbar-expand-lg navbar-dark bg-dark justify-content-center"><div class="navbar-nav"><a class="nav-item nav-link fs-18" href="/me">.me</a><a class="nav-item nav-link active fs-18" href="/posts">.posts</a><a class="nav-item nav-link fs-18" href="/projects">.projects</a></div></nav><ul class="list-inline text-center pb-4 mb-0"><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://github.com/crelies"><i class="fab fa-github fs-14"></i></a></li><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://medium.com/@crelies"><i class="fab fa-medium fs-14"></i></a></li><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://stackoverflow.com/story/crelies"><i class="fab fa-stack-overflow fs-14"></i></a></li><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://www.xing.com/profile/Christian_Elies2"><i class="fab fa-xing fs-14"></i></a></li><li class="list-inline-item"><a class="text-danger" target="_blank" href="https://www.linkedin.com/in/christian-elies-b1009b104"><i class="fab fa-linkedin fs-14"></i></a></li></ul></header><div class="page-wrapper text-white"><h1>Learn &amp; Master ⚔️ Type Erasure in 6 Minutes</h1><a href="/tags/typeerasure"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">type-erasure</span></a><a href="/tags/swift"><span class="badge badge-pill badge-info fs-12 text-monospace pt-2 pb-2 mr-2 mb-2">swift</span></a><p class="text-danger">22. Jul 2019</p><img src="type-erasure-header.png" alt="Example constant of type Any"/><p><em>Example constant of type Any</em></p><p>Some of you may already be familiar with <strong>Type Erasure</strong> and know how to use it. But I’m certain there are still people out there which don’t know about it or don’t know how to use it.</p><p><strong>Honestly</strong>, I didn’t take a look at it before writing my article about <a href="https://medium.com/better-programming/meet-greet-advanced-lists-in-swiftui-80ab6f08ca03"><em>Advanced Lists</em> in <strong>SwiftUI</strong></a>. It was a little mystery for me since I listened to a <em>not so good</em> talk at a developer conference a while ago.</p><p>Before lifting the secret <em>Type Erasure</em> let’s take a look at the problem it solved for me.</p><h2>The Problem 💣</h2><p>I wanted to store objects conforming to two different protocols in an array. When dealing with simple protocols the implementation is simple as well.</p><pre><code><span class="keyword">protocol</span> ProtocolA {}
+<span class="keyword">protocol</span> ProtocolB {}
+<span class="keyword">let</span> objects: [<span class="type">ProtocolA</span> &amp; <span class="type">ProtocolB</span>] = []
+</code></pre><p>In the real world protocols are often more complex (<em>like in my case</em>) and have <strong>*associated type*</strong> <em>and/or</em> <strong>*Self requirements*</strong>. Let’s take the <strong>Equatable</strong> protocol for example.</p><pre><code><span class="keyword">let</span> objects: [<span class="type">Equatable</span>] = []
+</code></pre><p>This code <strong>will not compile</strong> because the <em>Equatable</em> protocol has <em>Self requirements</em>. Therefore the protocol <strong>can only be used as a</strong> <strong>generic constraint</strong>.</p><img src="type-erasure-compiler-error.png" alt="Compiler error"/><p><em>One more thing</em> left before the solution: a <strong>definition</strong> of <em>Type Erasure</em>.</p><h2>Type Erasure</h2><p>Here is my definition of <em>Type Erasure</em>:</p><blockquote><p>It’s a technique used to solve the problems which occur when dealing with protocols having associated type and/or Self requirements.</p></blockquote><blockquote><p>Type Erasure erases the type information in the first place while still constraining to the specific type. Its achieved with the implementation of a box/wrapper type.</p></blockquote><p>I know it’s weird to erase the type information because we all love the statically typed language <strong>Swift</strong>, right? 🙃</p><p>Nevertheless let’s implement a solution to the aforementioned problem.</p><h2>The Solution 💡</h2><p>I implemented a type erased wrapper called <strong>AnyEquatable</strong>. It has a generic initializer which expects an object conforming to the E<em>quatable</em> protocol. The object is stored internally in an <em>Any</em> property, so the type information is lost.</p><blockquote><p>The <strong>key thing</strong> here is the <strong>*isEqualTo* block</strong>. This block gets another <em>AnyEquatable</em> object and tries to cast the <em>equatable</em> property of it to the type of the <em>Equatable</em> object passed to the initializer.</p></blockquote><p><em>AnyEquatable</em> itself conforms to the <em>Equatable</em> protocol and uses its <em>isEqualTo</em> block to do the equation. That way the conformance to the <em>Equatable</em> protocol is preserved regardless of the type erasure.</p><pre><code><span class="keyword">struct</span> AnyEquatable {
+    <span class="keyword">private let</span> isEqualTo: (<span class="type">AnyEquatable</span>) -&gt; <span class="type">Bool</span>
+    <span class="keyword">let</span> equatable: <span class="type">Any</span>
+    
+    <span class="keyword">init</span>&lt;<span class="type">T</span>: <span class="type">Equatable</span>&gt;(<span class="keyword">_</span> equatable: <span class="type">T</span>) {
+        <span class="keyword">self</span>.<span class="property">equatable</span> = equatable
+        <span class="keyword">self</span>.<span class="property">isEqualTo</span> = { anotherEquatable <span class="keyword">in
+            guard let</span> anotherEquatable = anotherEquatable.<span class="property">equatable</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return false</span>
+            }
+            
+            <span class="keyword">return</span> anotherEquatable == equatable
+        }
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyEquatable</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">AnyEquatable</span>, rhs: <span class="type">AnyEquatable</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="call">isEqualTo</span>(rhs)
+    }
+}
+</code></pre><p>Now, we are able to store different <em>Equatable</em> objects in the same array:</p><pre><code><span class="keyword">struct</span> Foo {
+    <span class="keyword">let</span> propertyA: <span class="type">String</span>
+}
+<span class="keyword">extension</span> <span class="type">Foo</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">Foo</span>, rhs: <span class="type">Foo</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="property">propertyA</span> == rhs.<span class="property">propertyA</span>
+    }
+}
+<span class="keyword">struct</span> Bar {
+    <span class="keyword">let</span> propertyB: <span class="type">String</span>
+}
+<span class="keyword">extension</span> <span class="type">Bar</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">Bar</span>, rhs: <span class="type">Bar</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="property">propertyB</span> == rhs.<span class="property">propertyB</span>
+    }
+}
+<span class="keyword">var</span> equatableArray: [<span class="type">AnyEquatable</span>] = []
+<span class="keyword">let</span> equatable1 = <span class="type">AnyEquatable</span>(<span class="type">Foo</span>(propertyA: <span class="string">"foo"</span>))
+equatableArray.<span class="call">append</span>(equatable1)
+<span class="keyword">let</span> equatable2 = <span class="type">AnyEquatable</span>(<span class="type">Foo</span>(propertyA: <span class="string">"foo"</span>))
+equatableArray.<span class="call">append</span>(equatable2)
+<span class="keyword">let</span> equatable3 = <span class="type">AnyEquatable</span>(<span class="type">Bar</span>(propertyB: <span class="string">"bar"</span>))
+equatableArray.<span class="call">append</span>(equatable3)
+<span class="call">print</span>(equatableArray[<span class="number">0</span>] == equatableArray[<span class="number">1</span>]) <span class="comment">// true</span>
+print(equatableArray[<span class="number">1</span>] == equatableArray[<span class="number">2</span>]) <span class="comment">// false</span>
+</code></pre><p>There is another common problem where <em>Type Erasure</em> comes to the rescue:</p><blockquote><p>Think about a delegate protocol where you want to use a type which has <em>associated type and/or Self requirements</em>. Again the solution is a type erased wrapper. The only downside is that the delegate has to cast the <strong>Any</strong> value inside the type erased wrapper back to its original type.</p></blockquote><p>Okay, let’s head over to other type erased wrappers.</p><h2>More Type erased wrappers 🌟</h2><p>In this section I’ll give you a short overview of some other type erased wrappers you can use to solve the aforementioned problems.</p><h3>AnyHashable</h3><p>It’s part of the <strong>Swift Standard Library</strong>.</p><p><strong>Usage examples:</strong> Store <strong>Hashable</strong> objects in an array, require <em>Hashable</em> conformance in another protocol</p><h3>AnyView</h3><p>The <strong>SwiftUI</strong> framework provides <em>AnyView</em> which erases the type information of views.</p><p><strong>Usage examples:</strong> Store objects conforming to the <strong>*View*</strong> protocol in an array, require conformance to the <em>View</em> protocol in another protocol</p><h3>AnyIdentifiable</h3><p>The <strong>Identifiable</strong> protocol is part of <strong>SwiftUI</strong> as well and needs to be implemented by the items used in a <em>List</em> view or in a <em>ForEach</em>, so they can be uniquely identified by the framework.</p><p>A type erased wrapper <em>AnyIdentifiable</em> is easily implemented with the use of the existing type erased wrapper <em>AnyHashable</em>.</p><pre><code><span class="keyword">struct</span> AnyIdentifiable: <span class="type">Identifiable</span> {
+    <span class="keyword">let</span> id: <span class="type">AnyHashable</span>
+    
+    <span class="keyword">init</span>&lt;<span class="type">T</span>: <span class="type">Identifiable</span>&gt;(<span class="keyword">_</span> identifiable: <span class="type">T</span>) {
+        <span class="keyword">self</span>.<span class="property">id</span> = identifiable.<span class="property">id</span>
+    }
+}
+</code></pre><h3>AnyComparable</h3><p>Similar to the <em>AnyEquatable</em> wrapper is the implementation of the following type erased wrapper for <em>Comparable</em> objects.</p><pre><code><span class="keyword">struct</span> AnyComparable {
+    <span class="keyword">private let</span> isEqualTo: (<span class="type">AnyComparable</span>) -&gt; <span class="type">Bool</span>
+    <span class="keyword">private let</span> compareTo: (<span class="type">AnyComparable</span>) -&gt; <span class="type">Bool</span>
+    <span class="keyword">let</span> comparable: <span class="type">Any</span>
+    
+    <span class="keyword">init</span>&lt;<span class="type">T</span>: <span class="type">Comparable</span>&gt;(<span class="keyword">_</span> comparable: <span class="type">T</span>) {
+        <span class="keyword">self</span>.<span class="property">comparable</span> = comparable
+        <span class="keyword">self</span>.<span class="property">isEqualTo</span> = { anotherEquatable <span class="keyword">in
+            guard let</span> anotherEquatable = anotherEquatable.<span class="property">comparable</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return false</span>
+            }
+            
+            <span class="keyword">return</span> anotherEquatable == comparable
+        }
+        <span class="keyword">self</span>.<span class="property">compareTo</span> = { anotherComparable <span class="keyword">in
+            guard let</span> anotherComparable = anotherComparable.<span class="property">comparable</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return false</span>
+            }
+            
+            <span class="keyword">return</span> comparable &lt; anotherComparable
+        }
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyComparable</span>: <span class="type">Comparable</span> {
+    <span class="keyword">static func</span> &lt; (lhs: <span class="type">AnyComparable</span>, rhs: <span class="type">AnyComparable</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="call">compareTo</span>(rhs)
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyComparable</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">AnyComparable</span>, rhs: <span class="type">AnyComparable</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="call">isEqualTo</span>(rhs)
+    }
+}
+</code></pre><p>The following code shows a basic usage example of the type erased wrapper:</p><pre><code><span class="keyword">let</span> comparables = [<span class="type">AnyComparable</span>(<span class="number">5</span>), <span class="type">AnyComparable</span>(<span class="number">10</span>)]
+<span class="call">print</span>(comparables[<span class="number">0</span>] &lt; comparables[<span class="number">1</span>]) <span class="comment">// true</span>
+print(comparables[<span class="number">0</span>] &gt; comparables[<span class="number">0</span>]) <span class="comment">// false</span>
+print(comparables[<span class="number">0</span>] == comparables[<span class="number">0</span>]) <span class="comment">// true</span>
+</code></pre><h3>AnyNumber</h3><p>Last but not least I proudly present a type erased wrapper for storing objects conforming to the <em>Numeric</em> protocol in the same array (<em>Int</em>, <em>Float</em> and <em>Double</em> numbers).</p><blockquote><p>Keep in mind that you can only use <strong>add</strong>, <strong>substract</strong> or <strong>multiply on AnyNumber</strong>s with the <strong>same underlying type</strong> (Int, Float or Double).</p></blockquote><pre><code><span class="keyword">struct</span> AnyNumber: <span class="type">Numeric</span> {
+    <span class="keyword">private let</span> add: (<span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span>
+    <span class="keyword">private let</span> substract: (<span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span>
+    <span class="keyword">private let</span> multiply: (<span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span>
+    <span class="keyword">private let</span> isEqualTo: (<span class="type">AnyNumber</span>) -&gt; <span class="type">Bool</span>
+    
+    <span class="keyword">var</span> magnitude: <span class="type">Double</span> {
+        <span class="keyword">let</span> stringValue = <span class="type">String</span>(describing: value)
+        <span class="keyword">return</span> <span class="type">Double</span>(stringValue)?.<span class="property">magnitude</span> ?? -<span class="number">1</span>
+    }
+    
+    <span class="keyword">let</span> value: <span class="type">Any</span>
+    
+    <span class="keyword">init</span>?&lt;<span class="type">T</span>&gt;(exactly source: <span class="type">T</span>) <span class="keyword">where</span> <span class="type">T</span> : <span class="type">BinaryInteger</span> {
+        <span class="keyword">self</span>.<span class="keyword">init</span>(source)
+    }
+    
+    <span class="keyword">init</span>&lt;<span class="type">T</span>: <span class="type">Numeric</span>&gt;(<span class="keyword">_</span> number: <span class="type">T</span>) {
+        <span class="keyword">self</span>.<span class="property">value</span> = number
+        <span class="keyword">self</span>.<span class="property">add</span> = { anotherNumber <span class="keyword">in
+            guard let</span> anotherNumber = anotherNumber.<span class="property">value</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return</span> <span class="type">AnyNumber</span>(number)
+            }
+            
+            <span class="keyword">let</span> numbers = number + anotherNumber
+            <span class="keyword">return</span> <span class="type">AnyNumber</span>(numbers)
+        }
+        <span class="keyword">self</span>.<span class="property">substract</span> = { anotherNumber <span class="keyword">in
+            guard let</span> anotherNumber = anotherNumber.<span class="property">value</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return</span> <span class="type">AnyNumber</span>(number)
+            }
+            
+            <span class="keyword">let</span> numbers = number - anotherNumber
+            <span class="keyword">return</span> <span class="type">AnyNumber</span>(numbers)
+        }
+        <span class="keyword">self</span>.<span class="property">multiply</span> = { anotherNumber <span class="keyword">in
+            guard let</span> anotherNumber = anotherNumber.<span class="property">value</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return</span> <span class="type">AnyNumber</span>(number)
+            }
+            
+            <span class="keyword">let</span> numbers = number * anotherNumber
+            <span class="keyword">return</span> <span class="type">AnyNumber</span>(numbers)
+        }
+        <span class="keyword">self</span>.<span class="property">isEqualTo</span> = { anotherNumber <span class="keyword">in
+            guard let</span> anotherNumber = anotherNumber.<span class="property">value</span> <span class="keyword">as</span>? <span class="type">T</span> <span class="keyword">else</span> {
+                <span class="keyword">return false</span>
+            }
+            
+            <span class="keyword">return</span> anotherNumber == number
+        }
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyNumber</span>: <span class="type">Equatable</span> {
+    <span class="keyword">static func</span> == (lhs: <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) -&gt; <span class="type">Bool</span> {
+        <span class="keyword">return</span> lhs.<span class="call">isEqualTo</span>(rhs)
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyNumber</span>: <span class="type">AdditiveArithmetic</span> {
+    <span class="keyword">static func</span> -= (lhs: <span class="keyword">inout</span> <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) {
+        lhs = lhs - rhs
+    }
+    
+    <span class="keyword">static func</span> - (lhs: <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span> {
+        <span class="keyword">return</span> lhs.<span class="call">substract</span>(rhs)
+    }
+    
+    <span class="keyword">static func</span> += (lhs: <span class="keyword">inout</span> <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) {
+        lhs = lhs + rhs
+    }
+    
+    <span class="keyword">static func</span> + (lhs: <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span> {
+        <span class="keyword">return</span> lhs.<span class="call">add</span>(rhs)
+    }
+    
+    <span class="keyword">static func</span> * (lhs: <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) -&gt; <span class="type">AnyNumber</span> {
+        lhs.<span class="call">multiply</span>(rhs)
+    }
+    
+    <span class="keyword">static func</span> *= (lhs: <span class="keyword">inout</span> <span class="type">AnyNumber</span>, rhs: <span class="type">AnyNumber</span>) {
+        lhs = lhs * rhs
+    }
+}
+<span class="keyword">extension</span> <span class="type">AnyNumber</span>: <span class="type">ExpressibleByIntegerLiteral</span> {
+    <span class="keyword">init</span>(integerLiteral value: <span class="type">Int</span>) {
+        <span class="keyword">self</span>.<span class="keyword">init</span>(value)
+    }
+}
+</code></pre><p>The following code shows a simple usage example:</p><pre><code><span class="keyword">let</span> floatNumber: <span class="type">Float</span> = <span class="number">5.5323498539485</span>
+<span class="keyword">let</span> doubleNumber = <span class="number">6.549123234234234</span>
+<span class="keyword">let</span> intNumber = <span class="number">3</span>
+<span class="keyword">let</span> numbers = [<span class="type">AnyNumber</span>(floatNumber),
+               <span class="type">AnyNumber</span>(doubleNumber),
+               <span class="type">AnyNumber</span>(intNumber)]
+<span class="call">print</span>(<span class="call">type</span>(of: numbers[<span class="number">0</span>].value)) <span class="comment">// Float</span>
+<span class="call">print</span>(<span class="call">type</span>(of: numbers[<span class="number">1</span>].value)) <span class="comment">// Double</span>
+<span class="call">print</span>(<span class="call">type</span>(of: numbers[<span class="number">2</span>].value)) <span class="comment">// Int</span>
+</code></pre><p>You did it 🎉. Head over to your todo list:</p><blockquote><p>✅ Understand and use <em>Type Erasure</em></p></blockquote><p>I hope that I could unlock the secret <strong>Type Erasure</strong> for you. If <strong>yes</strong> then you are ready to use it in the near future 🚀🚀🚀. Otherwise don’t hesitate to <strong>ask questions</strong> ✌️.</p><p><strong>Thanks again for reading</strong> one of my articles. <strong>Check out my other articles</strong> if you like.</p><p>Stay tuned 📺.</p><p><a href="https://github.com/crelies"><strong>crelies - Overview</strong></a></p></div><footer class="mb-3"><div class="text-center fs-12 w-50 center-horizontally"><p class="text-danger text-monospace">    LegalNotice(name: "Christian Elies",
+                city: "Lüneburg")<br/><br/>Copyright © Christian Elies 2020.<br/><p class="text-danger mb-0">Generated using <a target="_blank" class="text-danger text-decoration-underline" href="https://github.com/JohnSundell/Publish">Publish</a>. 100% JavaScript-free.</p></p></div></footer></body></html>
