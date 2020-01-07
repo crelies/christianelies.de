@@ -1,19 +1,20 @@
 // swift-tools-version:5.1
+
 import PackageDescription
 
 let package = Package(
-    name: "christianelies",
+    name: "PersonalWebsite",
+    products: [
+        .executable(name: "PersonalWebsite", targets: ["PersonalWebsite"])
+    ],
     dependencies: [
-        // 💧 A server-side Swift web framework.
-        .package(url: "https://github.com/vapor/vapor.git", from: "3.3.1"),
-
-        // 🍃 An expressive, performant, and extensible templating language built for Swift.
-        .package(url: "https://github.com/vapor/leaf.git", from: "3.0.2"),
+        .package(url: "https://github.com/johnsundell/publish.git", from: "0.1.0"),
+        .package(url: "https://github.com/johnsundell/splashpublishplugin.git", from: "0.1.0")
     ],
     targets: [
-        .target(name: "App", dependencies: ["Leaf", "Vapor"]),
-        .target(name: "Run", dependencies: ["App"]),
-        .testTarget(name: "AppTests", dependencies: ["App"])
+        .target(
+            name: "PersonalWebsite",
+            dependencies: ["Publish", "SplashPublishPlugin"]
+        )
     ]
 )
-
