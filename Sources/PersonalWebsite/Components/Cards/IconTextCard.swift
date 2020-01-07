@@ -16,13 +16,11 @@ extension Node where Context: HTML.BodyContext {
                 .class("card-header"),
                 .span(
                     .i(.class(allCssClasses.joined(separator: " "))),
-                    .text(headerTitle)
-            ),
+                    .text(headerTitle))),
             .div(
                 .class("card-body"),
                 .h5(.class("card-title"), .text(title)),
                 .p(.class("card-text"), .text(text)))
-            )
         )
     }
 }

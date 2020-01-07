@@ -1,17 +1,8 @@
-
-# Created by https://www.gitignore.io/api/vapor
-
-### Vapor ###
-Config/secrets
-
-### Vapor Patch ###
-Packages
-.build
-xcuserdata
-*.xcodeproj
-DerivedData/
 .DS_Store
+/build
+/.build
+/.swiftpm
+/*.xcodeproj
 
-PersonalWebsite/Output
-
-# End of https://www.gitignore.io/api/vapor
+.publish
+Output
