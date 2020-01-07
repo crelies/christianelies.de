@@ -18,7 +18,7 @@ struct PersonalWebsite: Website {
 
     struct ItemMetadata: WebsiteItemMetadata {}
 
-    let url = URL(string: "https://crelies.github.io/christianelies.de")!
+    let url = URL(string: "https://christianelies.de")!
     let name = "Personal Website"
     let description = "Meet crelies"
     var language: Language { .english }
