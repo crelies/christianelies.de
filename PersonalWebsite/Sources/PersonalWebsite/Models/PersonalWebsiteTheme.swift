@@ -15,9 +15,9 @@ extension Theme where Site == PersonalWebsite {
     private struct PersonalHTMLFactory: HTMLFactory {
         func makeIndexHTML(for index: Index, context: PublishingContext<Site>) throws -> HTML {
             HTML(
-                .customHead(),
+                .customHead(site: context.site),
                 .body(
-                    .customHeader(sections: context.sections, currentSectionID: nil),
+                    .customHeader(context: context, currentSectionID: nil),
                     .div(
                         .class("page-wrapper container \(TextColor.white.cssClass)"),
                         .div(
@@ -25,7 +25,7 @@ extension Theme where Site == PersonalWebsite {
                                 .class("mb-3"),
                                 "Latest post"
                             ),
-                            .postCard(item: context.allItems(sortedBy: \.date, order: .descending).first!)
+                            .postCard(site: context.site, item: context.allItems(sortedBy: \.date, order: .descending).first!)
                         )
                     ),
                     .customFooter()
@@ -39,9 +39,9 @@ extension Theme where Site == PersonalWebsite {
 
         func makeItemHTML(for item: Item<Site>, context: PublishingContext<Site>) throws -> HTML {
             HTML(
-                .customHead(),
+                .customHead(site: context.site),
                 .body(
-                    .customHeader(sections: context.sections, currentSectionID: .posts),
+                    .customHeader(context: context, currentSectionID: .posts),
                     .div(
                         .class("page-wrapper \(TextColor.white.cssClass)"),
                         .contentBody(item.body)
@@ -57,14 +57,14 @@ extension Theme where Site == PersonalWebsite {
 
         func makeTagListHTML(for page: TagListPage, context: PublishingContext<Site>) throws -> HTML? {
             HTML(
-                .customHead(),
+                .customHead(site: context.site),
                 .body(
-                    .customHeader(sections: context.sections, currentSectionID: nil),
+                    .customHeader(context: context, currentSectionID: nil),
                     .div(
                         .class("page-wrapper \(TextColor.white.cssClass)"),
                         .h2("Browse by tag", .class("mb-3")),
                         .forEach(page.tags.sorted(by: <)) { tag in
-                            .linkTag(tag, fontSize: .large, color: tag.color)
+                            .linkTag(site: context.site, tag, fontSize: .large, color: tag.color)
                         }
                     ),
                     .customFooter()
@@ -74,9 +74,9 @@ extension Theme where Site == PersonalWebsite {
 
         func makeTagDetailsHTML(for page: TagDetailsPage, context: PublishingContext<Site>) throws -> HTML? {
             HTML(
-                .customHead(),
+                .customHead(site: context.site),
                 .body(
-                    .customHeader(sections: context.sections, currentSectionID: nil),
+                    .customHeader(context: context, currentSectionID: nil),
                     .div(
                         .class("page-wrapper \(TextColor.white.cssClass)"),
 
@@ -98,7 +98,7 @@ extension Theme where Site == PersonalWebsite {
                                     .class("text-right align-middle"),
                                     .a(
                                         .class(TextColor.red.cssClass),
-                                        .href("/tags"),
+                                        .href(context.site.url(for: Path("tags"))),
                                         "Browse all tags"
                                     )
                                 )
@@ -106,7 +106,7 @@ extension Theme where Site == PersonalWebsite {
                         ),
 
                         .forEach(context.items(taggedWith: page.tag)) { item in
-                            .postCard(item: item)
+                            .postCard(site: context.site, item: item)
                         }
                     ),
                     .customFooter()

@@ -16,15 +16,13 @@ struct PersonalWebsite: Website {
         case projects
     }
 
-    struct ItemMetadata: WebsiteItemMetadata {
-        // Add any site-specific metadata that you want to use here.
-    }
+    struct ItemMetadata: WebsiteItemMetadata {}
 
-    let url = URL(string: "https://christianelies.de")!
+    let url = URL(string: "https://crelies.github.io/christianelies.de")!
     let name = "Personal Website"
     let description = "Meet crelies"
     var language: Language { .english }
     var imagePath: Path? { nil }
-    var favicon: Favicon? { .init() }
+    var favicon: Favicon? { nil }
     var tagHTMLConfig: TagHTMLConfiguration? { .default }
 }

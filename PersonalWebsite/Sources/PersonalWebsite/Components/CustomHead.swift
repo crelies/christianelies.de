@@ -7,14 +7,15 @@
 
 import Foundation
 import Plot
+import Publish
 
 extension Node where Context == HTML.DocumentContext {
-    static func customHead() -> Self {
+    static func customHead(site: PersonalWebsite) -> Self {
         .head(
             .title("Personal Website"),
             .stylesheet(URL(string: "https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css")!),
             .stylesheet(URL(string: "https://use.fontawesome.com/releases/v5.6.3/css/all.css")!),
-            .stylesheet("/styles.css"),
+            .stylesheet(site.url(for: Path("styles.css"))),
             .encoding(.utf8)
         )
     }

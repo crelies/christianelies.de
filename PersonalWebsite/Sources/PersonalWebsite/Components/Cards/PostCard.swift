@@ -10,7 +10,7 @@ import Plot
 import Publish
 
 extension Node where Context: HTML.BodyContext {
-    static func postCard(item: Item<PersonalWebsite>) -> Self {
+    static func postCard(site: PersonalWebsite, item: Item<PersonalWebsite>) -> Self {
         .div(
             .class("card \(TextColor.white.cssClass) bg-dark mb-3 card-size"),
             .div(
@@ -19,10 +19,10 @@ extension Node where Context: HTML.BodyContext {
                     .class("card-title"),
                     .h5(.a(
                         .class(TextColor.white.cssClass),
-                        .href(item.path),
+                        .href(site.url(for: item.path)),
                         .text(item.title))),
                     .forEach(item.tags) { tag in
-                        .linkTag(tag, fontSize: .small, color: tag.color)
+                        .linkTag(site: site, tag, fontSize: .small, color: tag.color)
                     }
                 ),
                 .p(.class("card-text"), .text(item.description)),

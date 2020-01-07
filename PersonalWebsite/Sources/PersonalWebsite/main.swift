@@ -13,5 +13,6 @@ try PersonalWebsite().publish(using: [
     .generateHTML(withTheme: .personal),
     .generateRSSFeed(including: Set(PersonalWebsite.SectionID.allCases),
                      config: .default),
-    .generateSiteMap()
+    .generateSiteMap(),
+    .deploy(using: .gitHub("crelies/christianelies.de"))
 ])

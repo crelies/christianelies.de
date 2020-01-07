@@ -10,11 +10,11 @@ import Plot
 import Publish
 
 extension Section where Site == PersonalWebsite {
-    private func me(sections: SectionMap<Site>) -> HTML {
+    private func me(context: PublishingContext<Site>) -> HTML {
         HTML(
-            .customHead(),
+            .customHead(site: context.site),
             .body(
-                .customHeader(sections: sections, currentSectionID: .me),
+                .customHeader(context: context, currentSectionID: .me),
                 .div(
                     .class("page-wrapper container \(TextColor.white.cssClass)"),
 
@@ -56,11 +56,11 @@ extension Section where Site == PersonalWebsite {
         )
     }
 
-    private func posts(sections: SectionMap<Site>) -> HTML {
+    private func posts(context: PublishingContext<Site>) -> HTML {
         HTML(
-            .customHead(),
+            .customHead(site: context.site),
             .body(
-                .customHeader(sections: sections, currentSectionID: .posts),
+                .customHeader(context: context, currentSectionID: .posts),
                 .div(
                     .class("page-wrapper container \(TextColor.white.cssClass)"),
 
@@ -68,7 +68,7 @@ extension Section where Site == PersonalWebsite {
                         "Posts"),
 
                     .forEach(items) { item in
-                        .postCard(item: item)
+                        .postCard(site: context.site, item: item)
                     }
                 ),
                 .customFooter()
@@ -76,11 +76,11 @@ extension Section where Site == PersonalWebsite {
         )
     }
 
-    private func projects(sections: SectionMap<Site>) -> HTML {
+    private func projects(context: PublishingContext<Site>) -> HTML {
         HTML(
-            .customHead(),
+            .customHead(site: context.site),
             .body(
-                .customHeader(sections: sections, currentSectionID: .projects),
+                .customHeader(context: context, currentSectionID: .projects),
                 .div(
                     .class("page-wrapper container \(TextColor.white.cssClass)"),
                     .h2(.class("mb-3"),
@@ -95,11 +95,11 @@ extension Section where Site == PersonalWebsite {
     func html(context: PublishingContext<Site>) -> HTML {
         switch id {
         case .me:
-            return me(sections: context.sections)
+            return me(context: context)
         case .posts:
-            return posts(sections: context.sections)
+            return posts(context: context)
         case .projects:
-            return projects(sections: context.sections)
+            return projects(context: context)
         }
     }
 }
