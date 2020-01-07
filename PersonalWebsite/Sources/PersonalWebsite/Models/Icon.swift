@@ -11,6 +11,7 @@ enum Icon {
     case linkedin
     case medium
     case stackoverflow
+    case user
     case xing
 }
 
@@ -27,6 +28,8 @@ extension Icon {
             return "fab fa-medium"
         case .stackoverflow:
             return "fab fa-stack-overflow"
+        case .user:
+            return "fas fa-user"
         case .xing:
             return "fab fa-xing"
         }

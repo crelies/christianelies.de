@@ -37,9 +37,11 @@ extension Section where Site == PersonalWebsite {
 
                         .div(
                             .class("col"),
-                            .tagCard(headerTitle: "Personal tags",
-                                     headerIconClass: "fas fa-user \(FontSize.display.cssClass) mr-2",
-                                     items: ["Family person",
+                            .tagCard(headerIcon: .user,
+                                     headerIconSize: .display,
+                                     headerTitle: "Personal tags",
+                                     additionalHeaderIconClasses: ["mr-2"],
+                                     tags: ["Family person",
                                              "Minimalist",
                                              "Traveler 4731: I love to travel",
                                              "Skier",
