@@ -15,7 +15,7 @@ extension Theme where Site == PersonalWebsite {
     private struct PersonalHTMLFactory: HTMLFactory {
         func makeIndexHTML(for index: Index, context: PublishingContext<Site>) throws -> HTML {
             HTML(
-                .customHead(site: context.site),
+                .head(for: index, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
                 .body(
                     .customHeader(context: context, currentSectionID: nil),
                     .div(
@@ -39,7 +39,7 @@ extension Theme where Site == PersonalWebsite {
 
         func makeItemHTML(for item: Item<Site>, context: PublishingContext<Site>) throws -> HTML {
             HTML(
-                .customHead(site: context.site),
+                .head(for: item, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
                 .body(
                     .customHeader(context: context, currentSectionID: .posts),
                     .div(
@@ -57,7 +57,7 @@ extension Theme where Site == PersonalWebsite {
 
         func makeTagListHTML(for page: TagListPage, context: PublishingContext<Site>) throws -> HTML? {
             HTML(
-                .customHead(site: context.site),
+                .head(for: page, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
                 .body(
                     .customHeader(context: context, currentSectionID: nil),
                     .div(
@@ -74,7 +74,7 @@ extension Theme where Site == PersonalWebsite {
 
         func makeTagDetailsHTML(for page: TagDetailsPage, context: PublishingContext<Site>) throws -> HTML? {
             HTML(
-                .customHead(site: context.site),
+                .head(for: page, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
                 .body(
                     .customHeader(context: context, currentSectionID: nil),
                     .div(
@@ -98,7 +98,7 @@ extension Theme where Site == PersonalWebsite {
                                     .class("text-right align-middle"),
                                     .a(
                                         .class(TextColor.red.cssClass),
-                                        .href(context.site.url(for: Path("tags"))),
+                                        .href(context.site.url(for: Path.defaultForTagHTML)),
                                         "Browse all tags"
                                     )
                                 )

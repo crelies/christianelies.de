@@ -26,3 +26,11 @@ struct PersonalWebsite: Website {
     var favicon: Favicon? { nil }
     var tagHTMLConfig: TagHTMLConfiguration? { .default }
 }
+
+extension PersonalWebsite {
+    var stylesheetPaths: [Path] {
+        ["/css/bootstrap.min.css",
+         "/css/all.min.css",
+         "/css/styles.css"]
+    }
+}

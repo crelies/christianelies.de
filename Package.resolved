@@ -15,8 +15,8 @@
         "repositoryURL": "https://github.com/johnsundell/files.git",
         "state": {
           "branch": null,
-          "revision": "941052daf1c0aa6999343ee899dd3d743c86f211",
-          "version": "4.1.0"
+          "revision": "22fe84797d499ffca911ccd896b34efaf06a50b9",
+          "version": "4.1.1"
         }
       },
       {
@@ -41,9 +41,9 @@
         "package": "Publish",
         "repositoryURL": "https://github.com/johnsundell/publish.git",
         "state": {
-          "branch": null,
-          "revision": "105089cea89876e19e412574082b20fc3f37108a",
-          "version": "0.2.0"
+          "branch": "master",
+          "revision": "c9f8908bb19d35fb2bf6d5c244f1ebb0c5d2708a",
+          "version": null
         }
       },
       {
@@ -51,8 +51,8 @@
         "repositoryURL": "https://github.com/johnsundell/shellout.git",
         "state": {
           "branch": null,
-          "revision": "4ebf25863deb9c3c02696704fc3d39736183f258",
-          "version": "2.2.1"
+          "revision": "e1577acf2b6e90086d01a6d5e2b8efdaae033568",
+          "version": "2.3.0"
         }
       },
       {

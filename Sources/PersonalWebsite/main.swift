@@ -4,6 +4,8 @@ import SplashPublishPlugin
 try PersonalWebsite().publish(using: [
     .installPlugin(.splash(withClassPrefix: "")),
     .copyResources(),
+    .copyFiles(at: "Styles", to: "css"),
+    .copyFiles(at: "webfonts", includingFolder: true),
     .addMarkdownFiles(),
     .sortItems(by: \.date, order: .descending),
     .installPlugin(.ensureAllItemsAreTagged),

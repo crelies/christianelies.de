@@ -12,7 +12,7 @@ import Publish
 extension Section where Site == PersonalWebsite {
     private func me(context: PublishingContext<Site>) -> HTML {
         HTML(
-            .customHead(site: context.site),
+            .head(for: self, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
             .body(
                 .customHeader(context: context, currentSectionID: .me),
                 .div(
@@ -58,7 +58,7 @@ extension Section where Site == PersonalWebsite {
 
     private func posts(context: PublishingContext<Site>) -> HTML {
         HTML(
-            .customHead(site: context.site),
+            .head(for: self, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
             .body(
                 .customHeader(context: context, currentSectionID: .posts),
                 .div(
@@ -78,7 +78,7 @@ extension Section where Site == PersonalWebsite {
 
     private func projects(context: PublishingContext<Site>) -> HTML {
         HTML(
-            .customHead(site: context.site),
+            .head(for: self, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
             .body(
                 .customHeader(context: context, currentSectionID: .projects),
                 .div(
