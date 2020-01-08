@@ -98,7 +98,7 @@ extension Theme where Site == PersonalWebsite {
                                     .class("text-right align-middle"),
                                     .a(
                                         .class(TextColor.red.cssClass),
-                                        .href(context.site.url(for: Path.defaultForTagHTML)),
+                                        .href(Path.defaultForTagHTML),
                                         "Browse all tags"
                                     )
                                 )

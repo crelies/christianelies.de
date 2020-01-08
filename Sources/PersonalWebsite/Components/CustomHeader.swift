@@ -16,7 +16,7 @@ extension Node where Context: HTML.BodyContext {
                 .class("text-center pt-4 \(FontSize.small.cssClass)"),
                 .a(
                     .class("\(TextColor.red.cssClass) text-monospace"),
-                    .href(context.site.url),
+                    .href("/"),
                     .p(.class("mb-0"), "debugPrint(\"Hello world!\")"))
             ),
             .navigationBar(context: context, currentSectionID: currentSectionID),

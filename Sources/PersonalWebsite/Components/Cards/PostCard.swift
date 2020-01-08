@@ -19,7 +19,7 @@ extension Node where Context: HTML.BodyContext {
                     .class("card-title"),
                     .h5(.a(
                         .class(TextColor.white.cssClass),
-                        .href(site.url(for: item.path)),
+                        .href(item.path),
                         .text(item.title))),
                     .forEach(item.tags) { tag in
                         .linkTag(site: site, tag, fontSize: .small, color: tag.color)

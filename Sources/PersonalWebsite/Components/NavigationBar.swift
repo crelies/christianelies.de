@@ -25,7 +25,7 @@ extension Node where Context: HTML.BodyContext {
 
                     let linkClassString = linkClasses.joined(separator: " ")
                     return .a(.class(linkClassString),
-                              .href(context.site.url(for: section.path)),
+                              .href(section.path),
                               ".\(section.id.rawValue)")
                 }
             )
