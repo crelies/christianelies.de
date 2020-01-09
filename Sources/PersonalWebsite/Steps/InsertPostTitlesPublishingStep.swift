@@ -1,5 +1,5 @@
 //
-//  InsertPostTitlesPlugin.swift
+//  InsertPostTitlesPublishingStep.swift
 //  
 //
 //  Created by Christian Elies on 06.01.20.

@@ -3,6 +3,7 @@ import SplashPublishPlugin
 
 try PersonalWebsite().publish(using: [
     .installPlugin(.splash(withClassPrefix: "")),
+    .addSectionTitles(),
     .copyResources(),
     .copyFiles(at: "Styles", to: "css"),
     .copyFiles(at: "webfonts", includingFolder: true),
