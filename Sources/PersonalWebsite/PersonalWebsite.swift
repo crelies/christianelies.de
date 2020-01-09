@@ -19,8 +19,8 @@ struct PersonalWebsite: Website {
     struct ItemMetadata: WebsiteItemMetadata {}
 
     let url = URL(string: "https://christianelies.de")!
-    let name = "Personal Website"
-    let description = "Meet crelies"
+    let name = "Meet crelies"
+    let description = "My personal website including my blog posts"
     var language: Language { .english }
     var imagePath: Path? { nil }
     var favicon: Favicon? { nil }

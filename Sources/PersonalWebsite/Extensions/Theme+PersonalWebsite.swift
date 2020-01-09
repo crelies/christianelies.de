@@ -56,7 +56,10 @@ extension Theme where Site == PersonalWebsite {
         }
 
         func makeTagListHTML(for page: TagListPage, context: PublishingContext<Site>) throws -> HTML? {
-            HTML(
+            var page = page
+            page.title = "Tags"
+
+            return HTML(
                 .head(for: page, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
                 .body(
                     .customHeader(context: context, currentSectionID: nil),
@@ -73,7 +76,10 @@ extension Theme where Site == PersonalWebsite {
         }
 
         func makeTagDetailsHTML(for page: TagDetailsPage, context: PublishingContext<Site>) throws -> HTML? {
-            HTML(
+            var page = page
+            page.title = "Tagged with \(page.tag.string)"
+            
+            return HTML(
                 .head(for: page, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
                 .body(
                     .customHeader(context: context, currentSectionID: nil),
