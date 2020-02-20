@@ -12,7 +12,7 @@ extension Node where Context: HTML.BodyContext {
         let headerIconClasses = [headerIcon.cssClass, headerIconSize.cssClass] + additionalHeaderIconClasses
         let headerIconClass = headerIconClasses.joined(separator: " ")
         return .div(
-            .class("card \(TextColor.white.cssClass) bg-dark mb-3 card-size"),
+            .class("card mb-3 card-size"),
             .div(
                 .class("card-header"),
                 .span(

@@ -1,11 +1,44 @@
 body {
-    background: #484848;
+    background: #2A3132;
 }
 
+/* HEADER */
 header {
-    background: #343a40;
+    background: #90AFC5;
 }
 
+header a {
+    color: #763626;
+}
+
+header a:hover {
+    color: #ffffff;
+}
+
+header a.active {
+    color: #ffffff;
+}
+
+header .main-link {
+    font-size: 44px;
+}
+
+.navbar-nav a {
+    font-size: 24px;
+}
+
+.social-links a {
+    font-size: 14px;
+}
+
+/* GLOBAL */
+
+/* Section header (e.g. Latest post) */
+h2 {
+    color: #90AFC5;
+}
+
+/* CONTAINER */
 .page-wrapper {
     max-width: 960px;
     margin-left: auto;
@@ -13,17 +46,101 @@ header {
     padding: 40px 20px 40px 20px;
 }
 
-.page-wrapper a {
-    color: #dc3545;
+/* LIST ENTRY */
+.list-entry {
+    background-color: #763626;
+    border-radius: 18px;
 }
 
-.page-wrapper img {
+/* post list entry */
+.list-entry.post.title {
+    color: #ffffff;
+}
+
+.list-entry.post.title.link {
+    color: #ffffff;
+}
+
+.list-entry.post.description {
+    font-style: italic;
+}
+
+.list-entry.post.date {
+    color: #90AFC5;
+}
+
+/* ITEM (e.g. post) */
+.item {
+    color: #ffffff;
+}
+
+.item h1 {
+    color: #90AFC5;
+    font-size: 2.2rem;
+}
+
+.item h2 {
+    color: #90AFC5;
+}
+
+.item h3 {
+    color: #90AFC5;
+}
+
+.item h4 {
+    color: #90AFC5;
+}
+
+.item strong {
+    color: #90AFC5;
+}
+
+.item a {
+    color: #90AFC5;
+}
+
+.item img {
     max-width: 100%;
+    max-height: 450px;
 }
 
-/*
-    Utilities
- */
+.post.date {
+    color: #90AFC5;
+}
+
+/* ME */
+.me.card-wrapper .card {
+    background-color: #763626;
+}
+
+/* TAG DETAILS */
+.tag-details {
+    color: #ffffff;
+}
+
+.browse-all-tags-link {
+    color: #90AFC5;
+}
+
+.browse-all-tags-link:hover {
+    color: #ffffff;
+}
+
+/* FOOTER */
+footer {
+    color: #90AFC5;
+    font-size: 12px;
+}
+
+footer a {
+    color: #90AFC5;
+}
+
+footer a:hover {
+    color: #ffffff;
+}
+
+/* Utilities */
 .center-horizontally {
     margin-left: auto;
     margin-right: auto;
@@ -38,9 +155,7 @@ header {
     text-decoration: underline;
 }
 
-/*
-    Font sizes
- */
+/* Font sizes */
 .fs-12 {
     font-size: 12px;
 }
@@ -61,9 +176,7 @@ header {
     font-size: 32px;
 }
 
-/*
-    Code block styling
- */
+/* Code blocks */
 pre {
     margin-bottom: 1.5em;
     background-color: #1a1a1a;
@@ -77,7 +190,7 @@ pre code {
     padding: 0 20px;
     color: #a9bcbc;
     line-height: 1.4em;
-    font-size: 0.95em;
+    font-size: 1.3em;
     overflow-x: auto;
     white-space: pre;
     -webkit-overflow-scrolling: touch;

@@ -25,7 +25,7 @@ extension Section where Site == PersonalWebsite {
                         .class("row"),
 
                         .div(
-                            .class("col"),
+                            .class("col me card-wrapper"),
                             .iconTextCard(
                                 headerTitle: "Current position",
                                 icon: .laptop,
@@ -36,7 +36,7 @@ extension Section where Site == PersonalWebsite {
                         ),
 
                         .div(
-                            .class("col"),
+                            .class("col me card-wrapper"),
                             .tagCard(headerIcon: .user,
                                      headerIconSize: .display,
                                      headerTitle: "Personal tags",

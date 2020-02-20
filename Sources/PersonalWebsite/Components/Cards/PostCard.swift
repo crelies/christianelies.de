@@ -12,21 +12,21 @@ import Publish
 extension Node where Context: HTML.BodyContext {
     static func postCard(site: PersonalWebsite, item: Item<PersonalWebsite>) -> Self {
         .div(
-            .class("card \(TextColor.white.cssClass) bg-dark mb-3 card-size"),
+            .class("card mb-4 card-size list-entry post"),
             .div(
                 .class("card-body"),
                 .div(
-                    .class("card-title"),
+                    .class("card-title list-entry post title"),
                     .h5(.a(
-                        .class(TextColor.white.cssClass),
+                        .class("list-entry post title link"),
                         .href(item.path),
                         .text(item.title))),
                     .forEach(item.tags) { tag in
                         .linkTag(site: site, tag, fontSize: .small, color: tag.color)
                     }
                 ),
-                .p(.class("card-text"), .text(item.description)),
-                .p(.class("\(TextColor.red.cssClass) mb-0"), .text(DateFormatters.post.string(from: item.date)))
+                .p(.class("card-text list-entry post description"), .text(item.description)),
+                .p(.class("mb-0 list-entry post date"), .text(DateFormatters.post.string(from: item.date)))
             )
         )
     }

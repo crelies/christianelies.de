@@ -11,7 +11,7 @@ extension Node where Context: HTML.BodyContext {
     static func iconTextCard(headerTitle: String, icon: Icon, iconSize: FontSize, title: String, text: String, additionalCssClasses: [String]) -> Self {
         let allCssClasses = [icon.cssClass, iconSize.cssClass] + additionalCssClasses
         return .div(
-            .class("card \(TextColor.white.cssClass) bg-dark mb-3 card-size"),
+            .class("card mb-3 card-size"),
             .div(
                 .class("card-header"),
                 .span(

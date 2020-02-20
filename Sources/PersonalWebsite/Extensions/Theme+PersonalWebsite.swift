@@ -43,7 +43,7 @@ extension Theme where Site == PersonalWebsite {
                 .body(
                     .customHeader(context: context, currentSectionID: .posts),
                     .div(
-                        .class("page-wrapper \(TextColor.white.cssClass)"),
+                        .class("page-wrapper item"),
                         .contentBody(item.body)
                     ),
                     .customFooter()
@@ -64,7 +64,7 @@ extension Theme where Site == PersonalWebsite {
                 .body(
                     .customHeader(context: context, currentSectionID: nil),
                     .div(
-                        .class("page-wrapper \(TextColor.white.cssClass)"),
+                        .class("page-wrapper"),
                         .h2("Browse by tag", .class("mb-3")),
                         .forEach(page.tags.sorted(by: <)) { tag in
                             .linkTag(site: context.site, tag, fontSize: .large, color: tag.color)
@@ -84,7 +84,7 @@ extension Theme where Site == PersonalWebsite {
                 .body(
                     .customHeader(context: context, currentSectionID: nil),
                     .div(
-                        .class("page-wrapper \(TextColor.white.cssClass)"),
+                        .class("page-wrapper tag-details"),
 
                         .div(
                             .class("row justify-content-between"),
@@ -103,7 +103,7 @@ extension Theme where Site == PersonalWebsite {
                                 .p(
                                     .class("text-right align-middle"),
                                     .a(
-                                        .class(TextColor.red.cssClass),
+                                        .class("browse-all-tags-link"),
                                         .href(Path.defaultForTagHTML),
                                         "Browse all tags"
                                     )

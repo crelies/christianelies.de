@@ -12,9 +12,9 @@ extension Node where Context: HTML.BodyContext {
         .footer(
             .class("mb-3"),
             .div(
-                .class("text-center \(FontSize.small.cssClass) w-50 center-horizontally"),
+                .class("text-center w-50 center-horizontally"),
                 .p(
-                    .class("\(TextColor.red.cssClass) text-monospace"),
+                    .class("text-monospace"),
                     #"""
                         LegalNotice(name: "Christian Elies",
                                     city: "Lüneburg")
@@ -24,11 +24,11 @@ extension Node where Context: HTML.BodyContext {
                     "Copyright © Christian Elies 2020.",
                     .br(),
                     .p(
-                        .class("\(TextColor.red.cssClass) mb-0"),
+                        .class("mb-0"),
                         "Generated using ",
                         .a(
                             .target(.blank),
-                            .class("\(TextColor.red.cssClass) text-decoration-underline"),
+                            .class("text-decoration-underline"),
                             .href("https://github.com/JohnSundell/Publish"),
                             "Publish"
                         ),

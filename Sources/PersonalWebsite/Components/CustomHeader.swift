@@ -13,11 +13,11 @@ extension Node where Context: HTML.BodyContext {
     static func customHeader(context: PublishingContext<PersonalWebsite>, currentSectionID: PersonalWebsite.SectionID?) -> Self {
         .header(
             .div(
-                .class("text-center pt-4 \(FontSize.small.cssClass)"),
+                .class("text-center pt-4"),
                 .a(
-                    .class("\(TextColor.red.cssClass) text-monospace"),
+                    .class("text-monospace main-link"),
                     .href("/"),
-                    .p(.class("mb-0"), "debugPrint(\"Hello world!\")"))
+                    .p(.class("mb-0"), "crelies.swift"))
             ),
             .navigationBar(context: context, currentSectionID: currentSectionID),
             .socialLinks()

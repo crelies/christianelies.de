@@ -9,14 +9,13 @@ import Foundation
 import Plot
 
 extension Node where Context == HTML.ListContext {
-    static func iconLinkItem(url: URL, icon: Icon, fontSize: FontSize = .medium) -> Self {
+    static func iconLinkItem(url: URL, icon: Icon) -> Self {
         .li(
             .class("list-inline-item"),
             .a(
-                .class(TextColor.red.cssClass),
                 .target(.blank),
                 .href(url),
-                .i(.class("\(icon.cssClass) \(fontSize.cssClass)")))
+                .i(.class("\(icon.cssClass)")))
         )
     }
 }
