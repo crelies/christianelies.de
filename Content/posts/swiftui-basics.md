@@ -4,7 +4,7 @@ title: Learn & Master ⚔️ SwiftUI basic components in 10 minutes
 description: How to implement basic UI components in SwiftUI
 tags: swiftui, uikit
 ---
-![**SwiftUI** icon](swiftui-basics-header.png) ***SwiftUI** icon (Copyright © 2019 **Apple Inc.**)*
+![**SwiftUI** icon](swiftui-basics-header.png) **SwiftUI** icon (Copyright © 2019 **Apple Inc.**)
 
 **Updated on 07/06/2019:** *Xcode 11 beta 3*
 

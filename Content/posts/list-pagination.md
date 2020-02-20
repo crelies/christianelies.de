@@ -51,7 +51,7 @@ extension RandomAccessCollection where Self.Element: Identifiable {
 
 You pass an item conforming to the `Identifiable` protocol to the function, and it returns true if the item is the last item in the collection.
 
-> The function looks for the index of the given item in the collection. It uses the hash value of the `*id*` property (requirement of the `*Identifiable*` protocol) to compare it to the other items in the list. If the item index is found, that means the distance between the item index and the end index has to be exactly one (the end index is equal to the current number of items in the collection). That’s how we know the given item is the last item.
+> The function looks for the index of the given item in the collection. It uses the hash value of the *`id`* property (requirement of the *`Identifiable`* protocol) to compare it to the other items in the list. If the item index is found, that means the distance between the item index and the end index has to be exactly one (the end index is equal to the current number of items in the collection). That’s how we know the given item is the last item.
 
 Instead of comparing the hash values, we can use the type-erased wrapper `AnyHashable` to directly compare the ids which are of the type `Hashable`.
 
@@ -100,7 +100,7 @@ struct ListPaginationExampleView: View {
 }
 ```
 
-> The helper function `***listItemAppears\***` internally checks if the given item is the last item. If it’s the last item the current page is increased, and the items of the next page are appended to the list. In addition, we keep track of the loading state through the `***isLoading\***` variable, which defines when to show the loading view.
+> The helper function *`listItemAppears`* internally checks if the given item is the last item. If it’s the last item the current page is increased, and the items of the next page are appended to the list. In addition, we keep track of the loading state through the *`isLoading`* variable, which defines when to show the loading view.
 
 ```swift
 extension ListPaginationExampleView {
@@ -158,7 +158,7 @@ extension RandomAccessCollection where Self.Element: Identifiable {
 }
 ```
 
-> This function looks for the index of the given item. If found, it calculates the distance to the end index. The specified offset (i.e. the number of items before the end) should be equal to `***distance — 1\***`. We have to substract 1 from the distance because the end index equals the value of the count property (i.e. the current number of items in the collection). I also added a simple validation check for the offset. The offset should be less than the current number of items in the collection.
+> This function looks for the index of the given item. If found, it calculates the distance to the end index. The specified offset (i.e. the number of items before the end) should be equal to *`distance — 1`*. We have to substract 1 from the distance because the end index equals the value of the count property (i.e. the current number of items in the collection). I also added a simple validation check for the offset. The offset should be less than the current number of items in the collection.
 
 Now we’re ready to move on to the user interface once again.
 
@@ -166,7 +166,7 @@ Now we’re ready to move on to the user interface once again.
 
 The UI implementation is nearly identical to our UI in the first approach. There is one key difference, however, and that’s in the `listItemAppears` function.
 
-> Keep in mind that we reuse the `*isLastItem*` function from the first approach here. The loading view will show only if the user reaches the end of the list and the request for the next page is still in progress.
+> Keep in mind that we reuse the *`isLastItem`* function from the first approach here. The loading view will show only if the user reaches the end of the list and the request for the next page is still in progress.
 
 ```swift
 struct ListPaginationThresholdExampleView: View {
@@ -198,7 +198,7 @@ struct ListPaginationThresholdExampleView: View {
 }
 ```
 
-> Instead of calling `***isLastItem\***`*,* we call `***isThresholdItem\***` to check if the given item is the threshold item.
+> Instead of calling *`isLastItem`*, we call *`isThresholdItem`* to check if the given item is the threshold item.
 
 ```swift
 extension ListPaginationThresholdExampleView {

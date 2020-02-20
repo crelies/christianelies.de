@@ -128,7 +128,7 @@ The *Presenter* file grew fast and had too many lines of code. We chose to reduc
 
 ### 3. Delegation Spaghetti code
 
-<div style="width:100%;height:0;padding-bottom:56%;position:relative;"><iframe src="https://giphy.com/embed/3o7qDKdHAqamtq0uBi" width="100%" height="100%" style="position:absolute" frameBorder="0" class="giphy-embed" allowFullScreen></iframe></div><p><a href="https://giphy.com/gifs/pasta-skydiving-skydive-3o7qDKdHAqamtq0uBi">via GIPHY</a></p>
+<div style="width:100%;height:0;padding-bottom:140px;position:relative;"><iframe src="https://giphy.com/embed/3o7qDKdHAqamtq0uBi" width="100%" height="100%" style="position:absolute" frameBorder="0" class="giphy-embed" allowFullScreen></iframe></div><p><a href="https://giphy.com/gifs/pasta-skydiving-skydive-3o7qDKdHAqamtq0uBi">via GIPHY</a></p>
 
 More and more the delegation between the I*nteractor* and the *Presenter* made no sense for most of our use cases. Mostly the *Interactor* starts async tasks. The *Presenter* should react to the completion of that task right where he called the *Interactor* method.
 
