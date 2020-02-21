@@ -193,6 +193,7 @@ pre code {
     font-size: 1.3em;
     overflow-x: auto;
     white-space: pre;
+    word-wrap: normal;
     -webkit-overflow-scrolling: touch;
 }
 
