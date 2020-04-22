@@ -54,7 +54,7 @@
     <span class="keyword">@ObservedObject private var</span> service: <span class="type">RemoteImageService</span> = <span class="type">RemoteImageService</span>()
     
     <span class="keyword">var</span> body: <span class="type">AnyView</span> {
-        <span class="keyword">switch</span> service.<span class="call">state</span> {
+        <span class="keyword">switch</span> service.<span class="property">state</span> {
             <span class="keyword">case</span> .<span class="dotAccess">error</span>(<span class="keyword">let</span> error):
                 <span class="keyword">return</span> <span class="type">AnyView</span>(
                     <span class="call">errorView</span>(error)
