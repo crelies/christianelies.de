@@ -52,7 +52,17 @@ extension Theme where Site == PersonalWebsite {
         }
 
         func makePageHTML(for page: Page, context: PublishingContext<Site>) throws -> HTML {
-            HTML()
+            HTML(
+                .head(for: page, on: context.site, stylesheetPaths: context.site.stylesheetPaths),
+                .body(
+                    .customHeader(context: context, currentSectionID: nil),
+                    .div(
+                        .class("page-wrapper item"),
+                        .contentBody(page.body)
+                    ),
+                    .customFooter()
+                )
+            )
         }
 
         func makeTagListHTML(for page: TagListPage, context: PublishingContext<Site>) throws -> HTML? {
