@@ -46,3 +46,7 @@ Below is a list of even more resources related to the Coronavirus pandemic.
 - [Link collection of the Swiss Propaganda Research Institute - Regularly updated information curated by experts including sources](https://swprs.org/covid-19-hinweis-ii/)
 
 - [Santa Clara County Coronavirus study by associate Professor Eran Bendavid (Stanford University, 🇺🇸)](https://www.theguardian.com/world/2020/apr/17/antibody-study-suggests-coronavirus-is-far-more-widespread-than-previously-thought)
+
+- [More experts questioning the Coronavirus Panic](https://off-guardian.org/2020/04/17/8-more-experts-questioning-the-coronavirus-panic/)
+
+- [120 experts comment on the Coronavirus Pandemic](https://www.rubikon.news/artikel/120-expertenstimmen-zu-corona)
