@@ -31,13 +31,16 @@ This list is nowhere near completion. If you start researching you will find man
  - **Prof. Hendrik Streeck, Lead Virologist** at the University of Bonn, 🇩🇪: leads a **Corona study** in the county *Heinsberg* in the state *North Rhine-Westphalia*, 🇩🇪
    - Watch the [official presentation of some intermediate results of his study]((https://www.youtube.com/watch?v=VnrHamW8OXQ)
  - **Prof. Dr. John Ioannidis, Infectiologist** at Stanford University in California, 🇺🇸
-- **Prof. Dr. Karin Mölling, Medical Virology** at the Zurich University, 🇨🇭
+   - Watch his [Interview](https://www.youtube.com/watch?v=cwPqmLoZA4s) for *Perspectives on the Pandemic Episode 4* from *17th of April 2020*
+ - **Prof. Dr. Karin Mölling, Medical Virology** at the Zurich University, 🇨🇭
 - **Prof. Dr. Stefan Hockertz, Immunology & Toxicology**, 🇩🇪
 - **Prof. Dr. Martin Haditsch, Microbiology & Virology**, Hanover, 🇩🇪
 - **Prof. Dr. Jay Bhattacharya, Medic** at Stanford University in California, 🇺🇸
 - **Prof. Dr. Knut Wittkowski, Epidemiology & Biostatistics**, New York, 🇺🇸
 - **Prof. Dr. Jochen A. Werner, Medical Director** at Uni Essen, 🇩🇪
 - **Prof. Dr. Eran Bendavid, Infectious diseases physician & Associate Professor of Medicine** at the Stanford University, 🇺🇸
+- **Dr. Shiva Ayyadurai**, holds **4 engineering degrees from** **MIT** and primarily focuses on **systems biology** (researches the **human immune system** among others), 🇺🇸
+   - Watch his [Interview](https://www.youtube.com/watch?v=1_Tp2UmrEGE) with *Der fehlende Part* (*translates to:* '*The missing piece*')
 
 ## Further resources
 
